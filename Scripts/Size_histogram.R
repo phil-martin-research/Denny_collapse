@@ -1,4 +1,4 @@
-#script to look at size shifts of trees in Denny wood
+#script to tidy up data from Denny wood
 
 library(ggplot2)
 library(plyr)
@@ -7,11 +7,11 @@ library(geoR)
 library(ape)
 
 #import data
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse")
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
+#transect Latitude and longitude
 Coord<-read.csv("Transect_coords.csv")
+#data on trees
 Plots<-read.csv("Denny_plots_edit2.csv")
-str(Plots)
-str(Coord)
 
 
 #create column to give size classes of 10 cm intervals
@@ -25,15 +25,18 @@ for (i in 1:12) {
 Status<-data.frame(seq(1:4),c(1,2,1,1))
 Plots$Status2<-NA
 for (i in 1:length(Status)){
-  Plots$Status2<-ifelse(Plots$Status==Status[1,i],Status[1,i],Plots$Status2)
+  Plots$Status2<-ifelse(Plots$Status==Status[i,1],Status[i,2],Plots$Status2)
 }
 
 #merge data from 1950s where data for years in not available
-Plots_pre60<-subset(Plots,Year<=1959)
-head(Plots_pre60)
-Pre_mean<-data.frame(tapply(Plots_pre60$DBH,Plots_pre60$Tree_ID,mean, na.rm=TRUE))
+Plots_pre60<-subset(Plots,Year<=1959) #subset data to be pre 1960
+#produce mean DBH for this period for each tree
+Pre_mean<-data.frame(tapply(Plots_pre60$DBH,Plots_pre60$Tree_ID,mean, na.rm=TRUE)) 
+#give each tree an ID and a mean DBH value
 colnames(Pre_mean)<-c("DBH")
 Pre_mean$ID<-row.names(Pre_mean)
+
+str(Pre_mean)
 
 for (i in 1:length(Plots)){
   Plots_pre60$DBH_mean<-ifelse(Plots_pre60$Tree_ID==Pre_mean$ID[i],Pre_mean$DBH[i],Plots$DBH)
