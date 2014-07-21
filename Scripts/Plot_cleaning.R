@@ -64,8 +64,11 @@ head(Plots3)
 Plots3$Dist_west<-as.numeric(as.character(Plots3$Dist_west))
 Plots3$Dist_south<-as.numeric(as.character(Plots3$Dist_south))
 
+head(Plots3)
+
 #tidy data so that only important bits are kept
-Plots_final<-Plots3[ -c(3,8:19,23,24,27) ]
+Plots_final<-Plots3[ -c(3,8:18,23,24,27) ]
+
 
 #save edited csv
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")

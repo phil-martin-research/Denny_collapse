@@ -2,20 +2,53 @@
 
 rm(list=ls(all=TRUE))
 
+#open packages neeeded for exploration
+library(ggplot2)
+library(plyr)
+library(reshape2)
+
+
 #import data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 Denny<-read.csv("Denny_cleaned.csv")
 head(Denny)
+summary(Denny)
 
 
+#calculate stem density per plot per time period
+Denny$Stem_D<-Denny$DBH_mean^2*pi/4
+
+Stem_density<-(with(Denny, tapply(Tree_ID,list(Block_new,Year), function(x) length(unique(na.omit(x))))))
+SD_melt<-melt(Stem_density)
+head(SD_melt)
+colnames(SD_melt)<-c("Block","Year","SD")
+SD_melt$Transect<-ifelse(SD_melt$Block>=51,"Unenclosed","Enclosed")
+SD_melt_CC<-SD_melt[complete.cases(SD_melt),]
 
 
-ggplot(data=Denny,aes(DBH_mean))+geom_histogram()+facet_grid(En.Un~Year)
+#calculate basal area per plot per time period
+Denny$BA<-Denny$DBH_mean^2*(pi/4)
+BA_change<-melt(with(Denny, tapply(BA,list(Block_new,Year), function(x) sum(na.omit(x))/400)))
+colnames(BA_change)<-c("Block","Year","BA")
+BA_change$Transect<-ifelse(BA_change$Block>=51,"Unenclosed","Enclosed")
+BA_change_CC<-BA_change[complete.cases(BA_change),]
 
-summary(Plots3)
+#plot time series of BA for both transects
+ggplot(BA_change_CC,aes(x=Year,y=BA,group=Block,colour=Transect))+geom_line()+geom_smooth(size=2,se=F,method="lm",aes(group=NULL))+facet_wrap(~Transect)
 
-ggplot(data=Plots3,aes(x=Long,y=Lat,size=DBH_mean,alpha=0.5,colour=as.factor(Status2)))+geom_point(shape=16)+facet_wrap(~Year)
+#calculate percentage change since first survey
+BA_perc_change<-merge(x=BA_change_CC,y=subset(BA_change_CC,Year==1959),by ="Block")
+BA_perc_change$Perc_change<-((BA_perc_change$BA.x/BA_perc_change$BA.y)*100)-100
 
+head(BA_perc_change)
+
+ggplot(BA_perc_change,aes(x=Perc_change))+geom_histogram()+facet_grid(Transect.x~Year.x)
+ggplot(BA_perc_change,aes(x=Year.x,y=Perc_change,group=Block,colour=Transect.x))+geom_line(aplha=0.5)+geom_smooth(size=4,se=F,method="loess",aes(group=NULL),)
+
+
+###############################################
+#below this point analysis may need changing###
+###############################################
 
 #produce plots of change in size structure
 DBH_count<-count(Plots3,c("Year","Class"))
