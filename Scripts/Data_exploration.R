@@ -15,15 +15,35 @@ head(Denny)
 summary(Denny)
 
 
-#calculate stem density per plot per time period
-Denny$Stem_D<-Denny$DBH_mean^2*pi/4
+#############################################
+#analyses of stem density change#############
+#############################################
 
+
+#calculate stem density per plot per time period
 Stem_density<-(with(Denny, tapply(Tree_ID,list(Block_new,Year), function(x) length(unique(na.omit(x))))))
 SD_melt<-melt(Stem_density)
 head(SD_melt)
 colnames(SD_melt)<-c("Block","Year","SD")
 SD_melt$Transect<-ifelse(SD_melt$Block>=51,"Unenclosed","Enclosed")
 SD_melt_CC<-SD_melt[complete.cases(SD_melt),]
+
+#plot time series of stem density change per plot for both transects
+ggplot(SD_melt_CC,aes(x=Year,y=SD,group=Block,colour=Transect))+geom_line()+geom_smooth(size=2,se=F,method="lm",aes(group=NULL))+facet_wrap(~Transect)
+
+#calculate percentage change in stem density per plot
+SD_perc_change<-merge(x=SD_melt_CC,y=subset(SD_melt_CC,Year==1959),by ="Block")
+SD_perc_change$Perc_change<-((SD_perc_change$SD.x/SD_perc_change$SD.y)*100)-100
+
+#plot graph of change
+ggplot(SD_perc_change,aes(x=Perc_change))+geom_histogram()+facet_grid(Transect.x~Year.x)+geom_vline(x=0,lty=2)
+ggplot(SD_perc_change,aes(x=Year.x,y=Perc_change,group=Block,colour=Transect.x))+geom_line(aplha=0.5)+geom_smooth(size=4,se=F,method="loess",aes(group=NULL),)
+
+
+
+#####################################
+#analyses of basal area change#######
+#####################################
 
 
 #calculate basal area per plot per time period
@@ -40,10 +60,40 @@ ggplot(BA_change_CC,aes(x=Year,y=BA,group=Block,colour=Transect))+geom_line()+ge
 BA_perc_change<-merge(x=BA_change_CC,y=subset(BA_change_CC,Year==1959),by ="Block")
 BA_perc_change$Perc_change<-((BA_perc_change$BA.x/BA_perc_change$BA.y)*100)-100
 
-head(BA_perc_change)
 
+#plots of percentage change
 ggplot(BA_perc_change,aes(x=Perc_change))+geom_histogram()+facet_grid(Transect.x~Year.x)
 ggplot(BA_perc_change,aes(x=Year.x,y=Perc_change,group=Block,colour=Transect.x))+geom_line(aplha=0.5)+geom_smooth(size=4,se=F,method="loess",aes(group=NULL),)
+
+#quick plots to check correlation between changes in stem density and basal area
+Perc_SD_BA<-merge(BA_perc_change,SD_perc_change,by=c("Block","Year.x"))
+head(Perc_SD_BA)
+ggplot(Perc_SD_BA,aes(x=Perc_change.y,y=Perc_change.x,group=Block,colour=as.factor(Year.x)))+geom_point()+facet_wrap(~Year.x)
+ggplot(Perc_SD_BA,aes(x=SD.y,y=BA.x,group=Block,colour=as.factor(Year.x)))+geom_point()+facet_wrap(~Year.x)
+
+#####################################
+#analysis of mean transect SD and BA#
+#####################################
+
+#function to calculate SE
+std <- function(x) sd(x)/sqrt(length(x))
+
+#work out mean and SE of basal area change
+#first basal area
+Transect_BA<-cbind(melt(with(BA_change_CC, tapply(BA,list(Transect,Year), function(x) mean(na.omit(x))))),
+melt(with(BA_change_CC, tapply(BA,list(Transect,Year), function(x) (sd(x)/sqrt(length(x)))*1.96))))
+colnames(Transect_BA)<-c("Transect","Year","BA","Transect_1","Year_1","CI")
+#plot results
+ggplot(Transect_BA,aes(x=Year,y=BA,ymax=BA+CI,ymin=BA-CI,colour=Transect))+geom_pointrange()+facet_wrap(~Transect)
+
+#now stem density
+
+Transect_SD<-cbind(melt(with(SD_melt_CC, tapply(SD,list(Transect,Year), function(x) mean(na.omit(x))))),
+                   melt(with(SD_melt_CC, tapply(SD,list(Transect,Year), function(x) (sd(x)/sqrt(length(x)))*1.96))))
+colnames(Transect_SD)<-c("Transect","Year","SD","Transect_1","Year_1","CI")
+#plot results
+ggplot(Transect_SD,aes(x=Year,y=SD,ymax=SD+CI,ymin=SD-CI,colour=Transect))+geom_pointrange()+facet_wrap(~Transect)
+
 
 
 ###############################################
