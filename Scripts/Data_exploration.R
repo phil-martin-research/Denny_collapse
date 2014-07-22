@@ -191,6 +191,13 @@ ggplot(data=combined.df,aes(x=lag,y=semi,size=No_pairs))+geom_line(size=0.5)+geo
 #open packages
 library(gstat)
 
+#first check whether there is a signiture of temporal autocorrelation in the SD data
+SD_M0<-gls(SD~Year,data=SD_melt_CC)
+GLS_SD<-data.frame(Residuals=resid(SD_M0),SD_melt_CC)
+ggplot(GLS_SD,aes(x=Year,y=Residuals,group=Block))+geom_point()+geom_line()+facet_wrap(~Block)
+#there isn't much signature of temporal autocorrelation here
+
+
 #plot a differenced time series (this is the net difference between values at t and t+1)
 head(SD_melt_CC)
 Blocks<-unique(SD_melt_CC$Block)
@@ -203,6 +210,17 @@ for (i in 1:length(Blocks)){
 #plot of temporal autocorrelation
 head(Time.lag)
 ggplot(Time.lag,aes(x=lag,y=Difference,group=Block))+geom_point()+geom_line()+facet_wrap(~Block)
+
+
+
+
+#now for individuals
+
+#first check if there is any signature
+head(Denny)
+DBH_M0<-gls(DBH_mean~Year,data=Denny)
+GLS_DBH<-data.frame(Residuals=resid(DBH_M0),Denny)
+ggplot(GLS_DBH,aes(x=Year,y=Residuals,group=Tree_ID))+geom_point()+geom_line()
 
 
 ######################################################
