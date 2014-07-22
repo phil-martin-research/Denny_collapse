@@ -182,3 +182,59 @@ combined.df <- do.call(rbind , tables)
 #plot semi-variogram for all years
 ggplot(data=combined.df,aes(x=lag,y=semi,size=No_pairs))+geom_line(size=0.5)+geom_point(alpha=0.5)+facet_wrap(~Year)
 
+#######################################################
+#exploratory analyses of temporal autocorrelation######
+#######################################################
+
+#first for plots - SD
+
+#open packages
+library(gstat)
+
+#plot a differenced time series (this is the net difference between values at t and t+1)
+head(SD_melt_CC)
+Blocks<-unique(SD_melt_CC$Block)
+Time.lag<-NULL
+for (i in 1:length(Blocks)){
+  Block_sub<-subset(SD_melt_CC,Block==Blocks[i])
+  Time.lag<-rbind(Time.lag, data.frame(Block=Block_sub$Block[-1],Difference=diff(Block_sub$SD,1),lag=seq(from=1,to=nrow(Block_sub)-1,by=1)))
+}
+
+#plot of temporal autocorrelation
+head(Time.lag)
+ggplot(Time.lag,aes(x=lag,y=Difference,group=Block))+geom_point()+geom_line()+facet_wrap(~Block)
+
+
+######################################################
+#exploratory analyses of changes in stem density######
+######################################################
+
+#first produce a distance matrix to account for distances between plots
+SD_plots_merge$lat_ed<-SD_plots_merge$lat +(rnorm(length(SD_plots_merge$lon),0,0.0000001))
+cs1Exp <- corExp(1, form = ~ lat_ed + lon)
+cs1Exp <- Initialize(cs1Exp, SD_plots_merge)
+corMatrix(cs1Exp)[1:10, 1:4]
+
+#add dummy variable to look at how residuals change with addition of random factors and distance
+SD_plots_merge$Dummy<-seq(1:nrow(SD_plots_merge))
+
+#open packages
+library(nlme)
+null.model<-lme(BA~1,random=~1|Dummy,data=SD_plots_merge)
+plot(null.model)
+qqnorm(null.model)
+#now add in random plot factor to account for temporal autocorrelation/repeated measures
+null.model2<-lme(BA~1,random=~1|Block,data=SD_plots_merge)
+plot(null.model2)
+qqnorm(null.model2)
+#now add in distance matrix
+null.model3<-update(null.model2, correlation = corExp(1, form = ~ lat_ed + lon))
+plot(null.model3)
+qqnorm(null.model3)
+
+M1<-update(null.model3, log(BA)~Year)
+plot(M1)
+qqnorm(M1)
+summary(M1)
+
+qplot(y=SD_plots_merge$lat,x=SD_plots_merge$lon,colour=resid(M1),size=resid(M1))+geom_point()
