@@ -22,13 +22,13 @@ for (i in 1:12) {
 }
 
 #change status column only be live or dead
-Status<-data.frame(seq(1:4),c(1,2,1,1))
+Status<-data.frame(seq(1:4),c(1,0,1,1))
 Plots$Status2<-NA
 for (i in 1:length(Status)){
   Plots$Status2<-ifelse(Plots$Status==Status[i,1],Status[i,2],Plots$Status2)
 }
 
-#merge data from 1950s where data for years in not available
+#merge data from 1950s where data for years is not available
 Plots_pre60<-subset(Plots,Year<=1959) #subset data to be pre 1960
 #produce mean DBH for this period for each tree
 Pre_mean<-data.frame(tapply(Plots_pre60$DBH,Plots_pre60$Tree_ID,mean, na.rm=TRUE)) 

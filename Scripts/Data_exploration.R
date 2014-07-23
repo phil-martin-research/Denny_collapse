@@ -13,22 +13,32 @@ library(geoR)
 #import data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 Denny<-read.csv("Denny_cleaned.csv")
+Denny<-subset(Denny,Block_new!=24&25&40)
+sort(unique(Denny$Block_new))
+Denny$Status<-ifelse(is.na(Denny$Status2),0,Denny$Status2)
+Tree_ID<-read.csv("Tree_ID.csv")
+Tree_ID2<-unique(Tree_ID[c("Tree_ID", "In.Out")])
+
+#merge tree_ID data and denny data to find trees inside and outside of the transect
+Denny<-merge(Denny,Tree_ID2,by="Tree_ID")
+Denny<-subset(Denny,In.Out=="In")
 
 #############################################
 #analyses of stem density change#############
 #############################################
 
-
 #calculate stem density per plot per time period
 Stem_density<-(with(Denny, tapply(Tree_ID,list(Block_new,Year), function(x) length(unique(na.omit(x))))))
+Stem_density2<-(with(Denny, tapply(Status,list(Block_new,Year), sum)))
+
+
 SD_melt<-melt(Stem_density)
-head(SD_melt)
 colnames(SD_melt)<-c("Block","Year","SD")
 SD_melt$Transect<-ifelse(SD_melt$Block>=51,"Unenclosed","Enclosed")
 SD_melt_CC<-SD_melt[complete.cases(SD_melt),]
 
 #plot time series of stem density change per plot for both transects
-ggplot(SD_melt_CC,aes(x=Year,y=SD,group=Block,colour=Transect))+geom_line()+geom_smooth(size=2,se=F,method="lm",aes(group=NULL))+facet_wrap(~Transect)
+ggplot(SD_melt,aes(x=Year,y=SD,group=Block,colour=Transect))+geom_line()+geom_point()+facet_wrap(~Transect)
 
 #calculate percentage change in stem density per plot
 SD_perc_change<-merge(x=SD_melt_CC,y=subset(SD_melt_CC,Year==1959),by ="Block")
@@ -43,26 +53,47 @@ ggplot(SD_perc_change,aes(x=Year.x,y=Perc_change,group=Block,colour=Transect.x))
 #####################################
 #analyses of basal area change#######
 #####################################
+head(Denny)
+
+
+#calculate summed DBH change over time
+DBH_change<-melt(with(Denny, tapply(DBH_mean,list(Block_new,Year), function(x) sum(na.omit(x)))))
+colnames(DBH_change)<-c("Block","Year","DBH")
+DBH_change$Transect<-ifelse(DBH_change$Block>=51,"Unenclosed","Enclosed")
+DBH_change_CC<-DBH_change[complete.cases(DBH_change),]
+
+#plot time series of BA for both transects
+ggplot(DBH_change_CC,aes(x=Year,y=DBH,group=Block,colour=Transect))+geom_line()+geom_point()+facet_wrap(~Block)
+
 
 
 #calculate basal area per plot per time period
-Denny$BA<-Denny$DBH_mean^2*(pi/4)
-BA_change<-melt(with(Denny, tapply(BA,list(Block_new,Year), function(x) sum(na.omit(x))/400)))
+
+Denny$BA<-ifelse(Denny$DBH_mean>10,Denny$DBH_mean^2*(pi/4),0)
+BA_change<-melt(with(Denny, tapply(BA,list(Block_new,Year), function(x) sum(na.omit(x)/400))))
 colnames(BA_change)<-c("Block","Year","BA")
 BA_change$Transect<-ifelse(BA_change$Block>=51,"Unenclosed","Enclosed")
 BA_change_CC<-BA_change[complete.cases(BA_change),]
 
 #plot time series of BA for both transects
-ggplot(BA_change_CC,aes(x=Year,y=BA,group=Block,colour=Transect))+geom_line()+geom_smooth(size=2,se=F,method="lm",aes(group=NULL))+facet_wrap(~Transect)
+ggplot(BA_change_CC,aes(x=Year,y=BA,group=Block,colour=Transect))+geom_line()+geom_point()+facet_wrap(~Block)
+
+
+Block_29<-subset(Denny,Block_new==7)
+ggplot(Block_29,aes(x=Long,y=Lat,size=DBH_mean,colour=as.factor(Status2)))+geom_point()+facet_wrap(~Year)
+
+ggplot(Block_29,aes(x=Year,y=DBH_mean,group=Tree_ID,colour=as.factor(Status)))+geom_point()+geom_line()+facet_wrap(~Tree_ID)
+
+
 
 #calculate percentage change since first survey
 BA_perc_change<-merge(x=BA_change_CC,y=subset(BA_change_CC,Year==1959),by ="Block")
 BA_perc_change$Perc_change<-((BA_perc_change$BA.x/BA_perc_change$BA.y)*100)-100
-
+BA_perc_change2<-subset(BA_perc_change,Year.x>1959)
 
 #plots of percentage change
-ggplot(BA_perc_change,aes(x=Perc_change))+geom_histogram()+facet_grid(Transect.x~Year.x)
-ggplot(BA_perc_change,aes(x=Year.x,y=Perc_change,group=Block,colour=Transect.x))+geom_line(aplha=0.5)+geom_smooth(size=4,se=F,method="loess",aes(group=NULL),)
+ggplot(BA_perc_change2,aes(x=Perc_change))+geom_histogram()+facet_grid(Transect.x~Year.x)+geom_vline(x=0,lty=2)
+ggplot(BA_perc_change,aes(x=Year.x,y=Perc_change,group=Block,colour=Transect.x))+geom_line(aplha=0.5)+geom_smooth(size=4,se=F,method="lm",aes(group=NULL))+facet_wrap(~Transect.x)
 
 #quick plots to check correlation between changes in stem density and basal area
 Perc_SD_BA<-merge(BA_perc_change,SD_perc_change,by=c("Block","Year.x"))
