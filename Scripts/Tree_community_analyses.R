@@ -52,4 +52,4 @@ for (i in 1:length(Blocks)){
 
 #plot of similarity change over time
 head(Sor_similarity)
-ggplot(Sor_similarity,aes(x=Year,y=Sorensen,group=Block_new))+geom_point()+geom_line()+facet_wrap(~Block_new)
+ggplot(Sor_similarity,aes(x=Year,y=Sorensen,group=Block_new))+geom_point()+geom_line()+geom_smooth(method="lm",se=F,size=2,alpha=0.5,aes(group=NULL))+facet_wrap(~Block_new)
