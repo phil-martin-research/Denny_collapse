@@ -38,14 +38,18 @@ Sp_counts2<-dcast(Sp_counts,Block_new + Year ~Sp)
 
 #now set up loop to carry out similarity analysis comparing each block to itself in 1959
 Blocks<-unique(Sp_counts2$Block_new)
-Block_subset<-subset(Sp_counts2,Block_new==Blocks[1])
-Block_subset[is.na(Block_subset)] <-0
-Block_subset2<-Block_subset[-c(1:2)]
-Block_subset2[is.na(Block_subset2)] <-0
+Sor_similarity<-NULL
 
-#now run dissimilarity test
+for (i in 1:length(Blocks)){
+  Block_subset<-subset(Sp_counts2,Block_new==Blocks[i])
+  Block_subset[is.na(Block_subset)]<-0
+  Block_subset2<-Block_subset[-c(1:2)]
+  Block_subset2[is.na(Block_subset2)]<-0
+  Block_subset$Sorensen<-c(1,1-vegdist(Block_subset2)[1:nrow(Block_subset2)-1])
+  Sor_similarity<-rbind(Sor_similarity,Block_subset)
+}
 
 
-
-
-head(Denny_species)
+#plot of similarity change over time
+head(Sor_similarity)
+ggplot(Sor_similarity,aes(x=Year,y=Sorensen,group=Block_new))+geom_point()+geom_line()+facet_wrap(~Block_new)
