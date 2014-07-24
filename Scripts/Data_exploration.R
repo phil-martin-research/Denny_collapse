@@ -68,8 +68,12 @@ ggplot(DBH_change_CC,aes(x=Year,y=DBH,group=Block,colour=Transect))+geom_line()+
 
 
 #calculate basal area per plot per time period
-
+#for all species
 Denny$BA<-ifelse(Denny$DBH_mean>10,Denny$DBH_mean^2*(pi/4),0)
+#for beech only
+Denny$Beech_BA<-ifelse(Denny$DBH_mean>10&Denny$Sp=="F",Denny$DBH_mean^2*(pi/4),0)
+
+#total basal area
 BA_change<-melt(with(Denny, tapply(BA,list(Block_new,Year), function(x) sum(na.omit(x)/400))))
 colnames(BA_change)<-c("Block","Year","BA")
 BA_change$Transect<-ifelse(BA_change$Block>=51,"Unenclosed","Enclosed")
@@ -79,11 +83,21 @@ BA_change_CC<-BA_change[complete.cases(BA_change),]
 ggplot(BA_change_CC,aes(x=Year,y=BA,group=Block,colour=Transect))+geom_line()+geom_point()+facet_wrap(~Block)
 
 
-Block_29<-subset(Denny,Block_new==7)
-ggplot(Block_29,aes(x=Long,y=Lat,size=DBH_mean,colour=as.factor(Status2)))+geom_point()+facet_wrap(~Year)
+#beech basal area
+Beech_BA_change<-melt(with(Denny, tapply(Beech_BA,list(Block_new,Year), function(x) sum(na.omit(x)/400))))
+colnames(Beech_BA_change)<-c("Block","Year","BA")
+Beech_BA_change$Transect<-ifelse(Beech_BA_change$Block>=51,"Unenclosed","Enclosed")
+Beech_BA_change_CC<-Beech_BA_change[complete.cases(Beech_BA_change),]
 
-ggplot(Block_29,aes(x=Year,y=DBH_mean,group=Tree_ID,colour=as.factor(Status)))+geom_point()+geom_line()+facet_wrap(~Tree_ID)
+#plot time series of beech BA for both transects
+ggplot(Beech_BA_change_CC,aes(x=Year,y=BA,group=Block,colour=Transect))+geom_line()+geom_point()+facet_wrap(~Block)
 
+
+
+#look at histograms of basal area
+#work out mean per time step
+
+ggplot(BA_change_CC,aes(x=BA))+geom_histogram()+facet_grid(Transect~Year)+geom_vline(data=BA_change_CC,aes(x=mean(BA)),lty=2)
 
 
 #calculate percentage change since first survey
@@ -93,13 +107,32 @@ BA_perc_change2<-subset(BA_perc_change,Year.x>1959)
 
 #plots of percentage change
 ggplot(BA_perc_change2,aes(x=Perc_change))+geom_histogram()+facet_grid(Transect.x~Year.x)+geom_vline(x=0,lty=2)
-ggplot(BA_perc_change,aes(x=Year.x,y=Perc_change,group=Block,colour=Transect.x))+geom_line(aplha=0.5)+geom_smooth(size=4,se=F,method="lm",aes(group=NULL))+facet_wrap(~Transect.x)
+ggplot(BA_perc_change,aes(x=Year.x,y=Perc_change,group=Block,colour=Transect.x))+geom_line(aplha=0.5)+geom_smooth(size=4,se=F,method="loess",aes(group=NULL))+facet_wrap(~Transect.x)
 
 #quick plots to check correlation between changes in stem density and basal area
 Perc_SD_BA<-merge(BA_perc_change,SD_perc_change,by=c("Block","Year.x"))
 head(Perc_SD_BA)
 ggplot(Perc_SD_BA,aes(x=Perc_change.y,y=Perc_change.x,group=Block,colour=as.factor(Year.x)))+geom_point()+facet_wrap(~Year.x)
 ggplot(Perc_SD_BA,aes(x=SD.y,y=BA.x,group=Block,colour=as.factor(Year.x)))+geom_point()+facet_wrap(~Year.x)
+
+
+##################################################
+#look at plot level tree species richness changes#
+##################################################
+
+
+head(Denny)
+
+#calculate stem density per plot per time period
+Sp_richness<-(with(Denny, tapply(Sp,list(Block_new,Year), function(x) length(unique(na.omit(x))))))
+Sp__rich_melt<-melt(Sp_richness)
+colnames(Sp__rich_melt)<-c("Block","Year","Sp_R")
+Sp__rich_melt$Transect<-ifelse(SD_melt$Block>=51,"Unenclosed","Enclosed")
+Sp_Rich_melt_CC<-Sp__rich_melt[complete.cases(Sp__rich_melt),]
+
+ggplot(Sp_Rich_melt_CC,aes(x=Year,y=Sp_R,group=Block,colour=Transect))+geom_line(alpha=0.4)+geom_point()+geom_smooth(se=F,method="lm",aes(group=NULL),size=4)
++facet_wrap(~Block)
+
 
 #####################################
 #analysis of mean transect SD and BA#
