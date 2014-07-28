@@ -13,6 +13,12 @@ Coord<-read.csv("Transect_coords.csv")
 #data on trees
 Plots<-read.csv("Denny_plots_edit3.csv")
 
+#calculate DBH where needed
+for (i in 1:nrow(Plots)){
+  Plots$DBH[i]<-ifelse(is.na(Plots$DBH[i])&Plots$DBH2[i]!=0,Plots$DBH2[i],Plots$DBH[i])
+}
+
+
 
 #create column to give size classes of 10 cm intervals
 Class<-c(seq(0,100,10),seq(120,140,20))
@@ -58,16 +64,17 @@ for (i in 1:nrow(Plots2)){
 }
 
 #remove trees with no dbh measurements
-Plots3<-Plots2[complete.cases(Plots2[,28]),]
+Plots3<-Plots2[complete.cases(Plots2[,29]),]
 head(Plots3)
 #set location as numeric
 Plots3$Dist_west<-as.numeric(as.character(Plots3$Dist_west))
 Plots3$Dist_south<-as.numeric(as.character(Plots3$Dist_south))
 
-head(Plots3)
+summary(Plots3)
 
 #tidy data so that only important bits are kept
-Plots_final<-Plots3[ -c(3,8:18,23,24,27) ]
+Plots_final<-Plots3[ -c(3,8:19,24,25) ]
+summary(Plots_final)
 
 
 #save edited csv
