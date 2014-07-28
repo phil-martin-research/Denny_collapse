@@ -11,7 +11,7 @@ setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse
 #transect Latitude and longitude
 Coord<-read.csv("Transect_coords.csv")
 #data on trees
-Plots<-read.csv("Denny_plots_edit2.csv")
+Plots<-read.csv("Denny_plots_edit3.csv")
 
 
 #create column to give size classes of 10 cm intervals
