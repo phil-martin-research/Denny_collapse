@@ -26,8 +26,9 @@ Denny<-merge(Denny,Tree_ID2,by="Tree_ID")
 Denny<-subset(Denny,In.Out=="In")
 head(Denny)
 Denny_species<-Denny[,c(1,3,6,8:11,13)]
-
 head(Denny_species)
+Denny_species<-subset(Denny_species,En.Un=="Enclosed")
+
 
 
 #produce counts of species per block per year
@@ -52,4 +53,28 @@ for (i in 1:length(Blocks)){
 
 #plot of similarity change over time
 head(Sor_similarity)
-ggplot(Sor_similarity,aes(x=Year,y=Sorensen,group=Block_new))+geom_point()+geom_line()+geom_smooth(method="lm",se=F,size=2,alpha=0.5,aes(group=NULL))+facet_wrap(~Block_new)
+ggplot(Sor_similarity,aes(x=Year,y=Sorensen,group=Block_new))+geom_point()+geom_line()+facet_wrap(~Block_new)
+
+#add ndms plot here
+Sp_counts2[is.na(Sp_counts2)]<-0
+#remove block and year
+Sp_counts3<-Sp_counts2[,-c(1:2)]
+
+#compute distance matricies
+vare.dis<-vegdist(Sp_counts3)
+vare.mds0<-metaMDS(vare.dis)
+
+#create dataframe for nmds
+NMDS<-data.frame(MDS1 = vare.mds0$points[,1], MDS2 = vare.mds0$points[,2],Year=Sp_counts2$Year,Plot=Sp_counts2$Block_new)
+ggplot(NMDS,aes(x=MDS1,y=MDS2,colour=as.factor(Year),group=Plot))+geom_point()+facet_wrap(~Year)
+
+#add elipses around points
+ord<-ordiellipse(vare.mds0, NMDS$Year, display = "sites", kind = "se", conf = 0.95, label = T)
+df_ell <- data.frame()
+for(y in unique(NMDS$Year)){
+  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$Year==y,],
+            veganCovEllipse(ord[[y]]$cov,ord[[y]]$center,ord[[y]]$scale))),group=y))
+}
+
+#create figure with ellipses
+ggplot(NMDS,aes(x=MDS1,y=MDS2,colour=as.factor(Year),group=Plot))+geom_point(size=4,alpha=0.8)+facet_wrap(~Year)
