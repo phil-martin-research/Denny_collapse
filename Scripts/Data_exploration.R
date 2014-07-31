@@ -38,7 +38,7 @@ SD_melt$Transect<-ifelse(SD_melt$Block>=51,"Unenclosed","Enclosed")
 SD_melt_CC<-SD_melt[complete.cases(SD_melt),]
 
 #plot time series of stem density change per plot for both transects
-ggplot(SD_melt,aes(x=Year,y=SD,group=Block,colour=Transect))+geom_line()+geom_point()+facet_wrap(~Transect)
+ggplot(SD_melt,aes(x=Year,y=SD,group=Block,colour=Transect))+geom_line()+geom_point()+facet_wrap(~Block)
 
 #calculate percentage change in stem density per plot
 SD_perc_change<-merge(x=SD_melt_CC,y=subset(SD_melt_CC,Year==1959),by ="Block")
@@ -130,8 +130,7 @@ colnames(Sp__rich_melt)<-c("Block","Year","Sp_R")
 Sp__rich_melt$Transect<-ifelse(SD_melt$Block>=51,"Unenclosed","Enclosed")
 Sp_Rich_melt_CC<-Sp__rich_melt[complete.cases(Sp__rich_melt),]
 
-ggplot(Sp_Rich_melt_CC,aes(x=Year,y=Sp_R,group=Block,colour=Transect))+geom_line(alpha=0.4)+geom_point()+geom_smooth(se=F,method="lm",aes(group=NULL),size=4)
-+facet_wrap(~Block)
+ggplot(Sp_Rich_melt_CC,aes(x=Year,y=Sp_R,group=Block,colour=Transect))+geom_line(alpha=0.4)+geom_point()+facet_wrap(~Block)
 
 
 #####################################
