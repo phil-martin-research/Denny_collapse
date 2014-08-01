@@ -11,6 +11,9 @@ library(raster)
 library(rgdal)  
 library(rgeos)  
 library(spdep)
+library(BRCmap)
+
+?BRCmap
 
 #import data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
@@ -33,13 +36,22 @@ Coord<-Coord[with(Coord, order(Block)), ]
 Plots$Block_new<-Plots$Block_new+1
 Plots<-Plots[with(Plots, order(Block_new)), ]
 
-#make points into a spatial dataframe
-coordinates(Coord)<-~lon+lat
+#convert coordinates into OS grid
+Coord2<-cbind(Coord,(gps_latlon2gr(latitude=Coord$lat,longitude=Coord$lon)[,2:3]))
+#turn into spatial dataframe
+coordinates(Coord2) = ~EASTING + NORTHING
+
 
 #calculate angle of first transect
 #subset to include enclosed transect only
 Coord_E<-subset(Coord,Transect=="Enclosed")
+
+
+
+
+
 #create loop to work out angle between each plot to determine the heading needed 
+
 
 plot(Coord_E)
 lines(Coord_E$lon,Coord_E$lat)
