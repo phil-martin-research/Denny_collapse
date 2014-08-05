@@ -13,7 +13,6 @@ library(rgeos)
 library(spdep)
 library(BRCmap)
 
-?BRCmap
 
 #import data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
@@ -21,9 +20,6 @@ setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse
 Coord<-read.csv("Transect_coords.csv")
 #data on trees
 Plots<-read.csv("Denny_plots_edit3.csv")
-
-
-
 
 #first organise data to give plot level information
 head(Plots)
@@ -41,98 +37,65 @@ Coord2<-cbind(Coord,(gps_latlon2gr(latitude=Coord$lat,longitude=Coord$lon)[,2:3]
 #turn into spatial dataframe
 coordinates(Coord2) = ~EASTING + NORTHING
 
-
-#calculate angle of first transect
 #subset to include enclosed transect only
-Coord_E<-subset(Coord,Transect=="Enclosed")
-
-
-
-
-
-#create loop to work out angle between each plot to determine the heading needed 
-
-
-plot(Coord_E)
-lines(Coord_E$lon,Coord_E$lat)
-abs(Coord_E$lon[1]-Coord_E$lon[1+1])
-
-Angles<-NULL
-for (i in 1:nrow(Coord_E)-1){
-  Lon<-abs(Coord_E$lon[i+1]-Coord_E$lon[i])
-  Lat<-abs(Coord_E$lat[i+1]-Coord_E$lat[i])
-  A<-ifelse(Lon<Lat,asin(Lon/Lat),asin(Lat/Lon))*57.2957795
-  Angles<-rbind(Angles,data.frame(Block=Coord_E$Block[i],Angle=A))
-}
-
-
-x<-(Coord_E$lon[2+1]-Coord_E$lon[2])/(Coord_E$lat[2+1]-Coord_E$lat[2])
-x2<-(10/(R*cos(pi*Coord_E$lat[2]/180)))
-lon0<-Coord_E$lon[2] + (x*(x2 * 180/pi))
-
-
-
-lat1<-Coord_E$lat[1]
-lon1<-Coord_E$lon[1]
-
-#Earth’s radius, sphere
-R<-6378137
-
-#offsets in meters
-dn<-20
-de<-20
-
-#Coordinate offsets in radians
-dLat<-dn/R
-dLon<-de/(R*cos(pi*lat1/180))
-
-#OffsetPosition, decimal degrees
-lat0<-lat1 - dLat * 180/pi
-lon0<-lon1 + dLon * 180/pi 
-
-
-lat0
-
-
-
-#so to work out tree distances I need to use geometry
-head(Plots)
+Coord_E<-subset(Coord2,Transect=="Enclosed")
 Plots_E<-subset(Plots,En.Un=="Enclosed")
+#subset for unenclosed transect
+Coord_U<-subset(Coord2,Transect=="Unenclosed")
+Plots_U<-subset(Plots,En.Un=="Unenclosed")
 
-#run a for loop to calculate the position of individual trees
-Plots_E2<-merge(Plots_E,Angles,by.x="Block_new",by.y="Block")
-for (i in 1:nrow(Plots_E2)){
-  sin(Plots_E2$Angle[1])*(as.numeric(as.character(Plots_E2$Dist_south[1]))/111111)
+
+#work out distance for each plot for enclosed data
+Block_dist<-data.frame(Block=unique(Plots_E$Block_new),Distance=(unique(Plots_E$Block_new)*20)-20)
+Plots_E$Dist_South2<-NA
+#calculate distance south
+for (i in 1:nrow(Block_dist)){
+  Plots_E$Dist_South2<-ifelse(Plots_E$Block_new==Block_dist$Block[i],Plots_E$Dist_south-Block_dist$Distance[i],Plots_E$Dist_South2)
 }
-Plots_E2$Dist_south[1]
-Plots_E2$Dist_west[1]
-Plots_E2$Angle[1]
-Coord_E$lat[1]
-Coord_E$lon[1]
-Coord_E$lat[2]
-Coord_E$lon[2]
+Plots2<-merge(Plots_E,Coord_E,by.x="Block_new",by.y="Block")
+head(Plots2)
+#calculate distance east
+for (i in 1:nrow(Plots2)){
+  Plots2$Easting1[i]<-Plots2$EASTING[i]-Plots2$Dist_west2[i]
+  Plots2$Northing1[i]<-Plots2$NORTHING[i]-Plots2$Dist_South2[i]
+}
 
-plot(c(Coord_E$lon[1:2],Coord_E$lon[1]),c(Coord_E$lat[1:2],Coord_E$lat[1]-20/100000))
+#################################################################
+#now do the same for the unenclosed transect
+#work out distance for each plot for enclosed data
+################################################################
 
-Plot1<-data.frame(Lon=c(Coord_E$lon[1:2],Coord_E$lon[1],Coord_E$lon[2]),Lat=c(Coord_E$lat[1:2],Coord_E$lat[2],Coord_E$lat[1]))
-coordinates(Plot1)<-~Lon+Lat
-
-plot(Plot1)
-
-
-20/111111
+head(Plots_U)
 
 
-summary(as.numeric(as.character(Plots_E2$Dist_south)))
-summary(as.numeric(as.character(Plots_E2$Dist_west)))-10
+plot(Plots_U$Dist_west,Plots_U$Dist_south)
+plot(Coord_U)
+
+#work out national grid coordinated for each plot
+Block_dist_U<-data.frame(Block=unique(Plots_U$Block_new),Distance=(unique(Plots_U$Block_new-51)*20)-20)
+Plots_U$Dist_South2<-Plots_U$Dist_west-10
+Plots_U$Dist_West2<-NA
+#calculate distance south for each tree
+for (i in 1:nrow(Block_dist_U)){
+  Plots_U$Dist_West2<-ifelse(Plots_U$Block_new==Block_dist_U$Block[i],Plots_U$Dist_west-Block_dist_U$Distance[i],Plots_U$Dist_West2)
+}
+
+Plots2U<-merge(Plots_U,Coord_U,by.x="Block_new",by.y="Block")
+head(Plots2U)
+#calculate distance east
+for (i in 1:nrow(Plots2U)){
+  Plots2U$Easting1[i]<-Plots2U$EASTING[i]-Plots2U$Dist_west[i]
+  Plots2U$Northing1[i]<-Plots2U$NORTHING[i]-Plots2U$Dist_South2[i]
+}
 
 
+plot(Plots2U$Easting1,Plots2U$Northing1)
 
-?rbind()
 
-(atan((max(Coord_E$lon)-min(Coord_E$lon))/(max(Coord_E$lat)-min(Coord_E$lat))))*57.2957795
+ggplot(Plots2U,aes(x=Easting1,y=Northing1,colour=Status))+geom_point(shape=1)
 
-atan(0.75)
+#first subset so that only trees on the enclosed plots are included
+Plots_E<-subset(Plots,En.Un=="Enclosed")
 
 
 #look at plot location
