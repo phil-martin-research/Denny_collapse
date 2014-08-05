@@ -1,5 +1,8 @@
 #script to tidy up data from Denny wood
 
+
+rm(list=ls(all=TRUE))
+
 library(ggplot2)
 library(plyr)
 library(reshape2)
@@ -31,6 +34,9 @@ Coord<-Coord[with(Coord, order(Block)), ]
 #give block names to coordinates
 Plots$Block_new<-Plots$Block_new+1
 Plots<-Plots[with(Plots, order(Block_new)), ]
+#convert distances south and west to numeric
+Plots$Dist_west<-as.numeric(as.character(Plots$Dist_west))
+Plots$Dist_south<-as.numeric(as.character(Plots$Dist_south))
 
 #convert coordinates into OS grid
 Coord2<-cbind(Coord,(gps_latlon2gr(latitude=Coord$lat,longitude=Coord$lon)[,2:3]))
@@ -48,17 +54,26 @@ Plots_U<-subset(Plots,En.Un=="Unenclosed")
 #work out distance for each plot for enclosed data
 Block_dist<-data.frame(Block=unique(Plots_E$Block_new),Distance=(unique(Plots_E$Block_new)*20)-20)
 Plots_E$Dist_South2<-NA
+Plots_E$Dist_West2<-Plots_E$Dist_west-10
+str(Plots2)
 #calculate distance south
 for (i in 1:nrow(Block_dist)){
   Plots_E$Dist_South2<-ifelse(Plots_E$Block_new==Block_dist$Block[i],Plots_E$Dist_south-Block_dist$Distance[i],Plots_E$Dist_South2)
 }
 Plots2<-merge(Plots_E,Coord_E,by.x="Block_new",by.y="Block")
 head(Plots2)
-#calculate distance east
+#calculate distance east and north
 for (i in 1:nrow(Plots2)){
-  Plots2$Easting1[i]<-Plots2$EASTING[i]-Plots2$Dist_west2[i]
+  Plots2$Easting1[i]<-Plots2$EASTING[i]-Plots2$Dist_West2[i]
   Plots2$Northing1[i]<-Plots2$NORTHING[i]-Plots2$Dist_South2[i]
 }
+str(Plots2)
+
+plot(Coord_E)
+points(Plots2$Easting1,Plots2$Northing1)
+
+dev.off()
+ggplot(Plots2,aes(x=Easting1,y=Northing1))+geom_point(shape=1)+facet_wrap(~Year)
 
 #################################################################
 #now do the same for the unenclosed transect
@@ -67,32 +82,36 @@ for (i in 1:nrow(Plots2)){
 
 head(Plots_U)
 
-
 plot(Plots_U$Dist_west,Plots_U$Dist_south)
 plot(Coord_U)
 
 #work out national grid coordinated for each plot
-Block_dist_U<-data.frame(Block=unique(Plots_U$Block_new),Distance=(unique(Plots_U$Block_new-51)*20)-20)
+Block_dist_U<-data.frame(Block=unique(Plots_U$Block_new),Distance=(unique(Plots_U$Block_new-51)*20))
 Plots_U$Dist_South2<-Plots_U$Dist_west-10
 Plots_U$Dist_West2<-NA
 #calculate distance south for each tree
 for (i in 1:nrow(Block_dist_U)){
-  Plots_U$Dist_West2<-ifelse(Plots_U$Block_new==Block_dist_U$Block[i],Plots_U$Dist_west-Block_dist_U$Distance[i],Plots_U$Dist_West2)
+  Plots_U$Dist_West2<-ifelse(Plots_U$Block_new==Block_dist_U$Block[i],Plots_U$Dist_south-Block_dist_U$Distance[i],Plots_U$Dist_West2)
 }
 
 Plots2U<-merge(Plots_U,Coord_U,by.x="Block_new",by.y="Block")
 head(Plots2U)
 #calculate distance east
 for (i in 1:nrow(Plots2U)){
-  Plots2U$Easting1[i]<-Plots2U$EASTING[i]-Plots2U$Dist_west[i]
+  Plots2U$Easting1[i]<-Plots2U$EASTING[i]-Plots2U$Dist_West2[i]
   Plots2U$Northing1[i]<-Plots2U$NORTHING[i]-Plots2U$Dist_South2[i]
 }
 
+plot(Plots2U$Dist_west,Plots2U$Dist_south)
+plot(Plots2U$Dist_West2,Plots2U$Dist_South2)
 
-plot(Plots2U$Easting1,Plots2U$Northing1)
+head(Plots2U)
+plot(Plots2U$EASTING,Plots2U$NORTHING)
+plot(Plots2U$EASTING,Plots2U$Easting1)
+plot(Plots2U$NORTHING,Plots2U$Northing1)
 
 
-ggplot(Plots2U,aes(x=Easting1,y=Northing1,colour=Status))+geom_point(shape=1)
+ggplot(Plots2U,aes(x=Easting1,y=Northing1,colour=Status))+geom_point(shape=1)+facet_wrap(~Year)
 
 #first subset so that only trees on the enclosed plots are included
 Plots_E<-subset(Plots,En.Un=="Enclosed")
