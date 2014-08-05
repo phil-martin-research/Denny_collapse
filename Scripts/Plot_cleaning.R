@@ -85,7 +85,7 @@ head(Plots_U)
 plot(Plots_U$Dist_west,Plots_U$Dist_south)
 plot(Coord_U)
 
-#work out national grid coordinated for each plot
+#work out national grid coordinates for each plot
 Block_dist_U<-data.frame(Block=unique(Plots_U$Block_new),Distance=(unique(Plots_U$Block_new-51)*20))
 Plots_U$Dist_South2<-Plots_U$Dist_west-10
 Plots_U$Dist_West2<-NA
@@ -115,7 +115,7 @@ ggplot(Plots2U,aes(x=Easting1,y=Northing1,colour=Status))+geom_point(shape=1)+fa
 
 
 #put data back together again
-Plots_comb<-rbind(Plots_U,Plots_E)
+Plots_comb<-rbind(Plots2U,Plots2)
 
 
 #calculate DBH where needed
@@ -168,19 +168,29 @@ for (i in 1:nrow(Plots_comb2)){
   Plots_comb2$Year[i]<-ifelse(Plots_comb2$Year[i]<=1959,1959,Plots_comb2$Year[i])
 }
 
+
 #remove trees with no dbh measurements
-Plots3<-Plots_comb2[complete.cases(Plots2[,29]),]
+Plots3<-Plots_comb2[complete.cases(Plots_comb2$DBH_mean),]
 head(Plots3)
 
 
+#set as snag or not
+Plots3$Snag<-as.numeric(as.character(Plots3$Snag))
+Plots3$Snag<-ifelse(is.na(Plots3$Snag),"No","Yes")
 
+
+ggplot(Plots3,aes(Easting1,Northing1,colour=as.factor(Snag)))+geom_point(shape=1)+facet_wrap(~Year)
 
 #tidy data so that only important bits are kept
-Plots_final<-Plots3[ -c(3,8:19,24,25) ]
-summary(Plots_final)
+summary(Plots3)
 
+Plots_final<-data.frame(Block=Plots3$Block_new,Year=Plots3$Year,Tree_ID=Plots3$Tree_ID,GBH=Plots3$GBH,DBH=Plots3$DBH_mean,
+                        Status=Plots3$Status2,Snag=as.factor(Plots3$Snag),Species=as.factor(Plots3$Sp),Easting=Plots3$Easting1,Northing=Plots3$Northing1)
+
+
+head(Plots_final)
 
 #save edited csv
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
-write.csv(x=Plots_final,"Denny_cleaned.csv")
+write.csv(x=Plots_final,"Denny_trees_cleaned.csv",row.names=FALSE)
 
