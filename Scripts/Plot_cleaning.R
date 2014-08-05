@@ -113,39 +113,34 @@ plot(Plots2U$NORTHING,Plots2U$Northing1)
 
 ggplot(Plots2U,aes(x=Easting1,y=Northing1,colour=Status))+geom_point(shape=1)+facet_wrap(~Year)
 
-#first subset so that only trees on the enclosed plots are included
-Plots_E<-subset(Plots,En.Un=="Enclosed")
 
+#put data back together again
+Plots_comb<-rbind(Plots_U,Plots_E)
 
-#look at plot location
-df<-data.frame(Coord$lon,Coord$lat)
-map<-
-ggmap(get_map(maptype = 'satellite',location = c(mean(Coord$lon),mean(Coord$lat)),zoom=15))+geom_point(data=Coord,aes(x=lon,y=lat,label=Block),size=10,shape=0)
-?get_map
 
 #calculate DBH where needed
-for (i in 1:nrow(Plots)){
-  Plots$DBH[i]<-ifelse(is.na(Plots$DBH[i])&Plots$DBH2[i]!=0,Plots$DBH2[i],Plots$DBH[i])
+for (i in 1:nrow(Plots_comb)){
+  Plots_comb$DBH[i]<-ifelse(is.na(Plots_comb$DBH[i])&Plots_comb$DBH2[i]!=0,Plots_comb$DBH2[i],Plots_comb$DBH[i])
 }
-
-
 
 #create column to give size classes of 10 cm intervals
 Class<-c(seq(0,100,10),seq(120,140,20))
-Plots$Class<-NA
+Plots_comb$Class<-NA
 for (i in 1:12) {
-  Plots$Class<-ifelse(Plots$DBH>=Class[i]&Plots$DBH<=Class[i+1],Class[i+1],Plots$Class)
+  Plots_comb$Class<-ifelse(Plots_comb$DBH>=Class[i]&Plots_comb$DBH<=Class[i+1],Class[i+1],Plots_comb$Class)
 }
 
 #change status column only be live or dead
+levels(Plots_comb$Status)
+
 Status<-data.frame(seq(1:4),c(1,0,1,1))
-Plots$Status2<-NA
+Plots_comb$Status2<-NA
 for (i in 1:length(Status)){
-  Plots$Status2<-ifelse(Plots$Status==Status[i,1],Status[i,2],Plots$Status2)
+  Plots_comb$Status2<-ifelse(Plots_comb$Status==Status[i,1],Status[i,2],Plots_comb$Status2)
 }
 
 #merge data from 1950s where data for years is not available
-Plots_pre60<-subset(Plots,Year<=1959) #subset data to be pre 1960
+Plots_pre60<-subset(Plots_comb,Year<=1959) #subset data to be pre 1960
 #produce mean DBH for this period for each tree
 Pre_mean<-data.frame(tapply(Plots_pre60$DBH,Plots_pre60$Tree_ID,mean, na.rm=TRUE)) 
 #give each tree an ID and a mean DBH value
@@ -162,25 +157,23 @@ head(Dup_rm)
 Dup_rm2<-data.frame(Tree_ID=Dup_rm$Tree_ID,DBH=Dup_rm$DBH.y,Year=Dup_rm$Year)
 
 #merge datasets together
-Plots2<-merge(x=Plots,y=Dup_rm2,by=c("Tree_ID","Year"),all.x = T)
+Plots_comb2<-merge(x=Plots_comb,y=Dup_rm2,by=c("Tree_ID","Year"),all.x = T)
 
 #for everything pre 1960 get the mean pre 1960 mean
-for (i in 1:nrow(Plots2)){
-  Plots2$DBH_mean[i]<-ifelse(Plots2$Year[i]<=1959,Plots2$DBH.y[i],Plots2$DBH.x[i])
+for (i in 1:nrow(Plots_comb2)){
+  Plots_comb2$DBH_mean[i]<-ifelse(Plots_comb2$Year[i]<=1959,Plots_comb2$DBH.y[i],Plots_comb2$DBH.x[i])
 }
 #set year as 1959 for all data pre 1960
-for (i in 1:nrow(Plots2)){
-  Plots2$Year[i]<-ifelse(Plots2$Year[i]<=1959,1959,Plots2$Year[i])
+for (i in 1:nrow(Plots_comb2)){
+  Plots_comb2$Year[i]<-ifelse(Plots_comb2$Year[i]<=1959,1959,Plots_comb2$Year[i])
 }
 
 #remove trees with no dbh measurements
-Plots3<-Plots2[complete.cases(Plots2[,29]),]
+Plots3<-Plots_comb2[complete.cases(Plots2[,29]),]
 head(Plots3)
-#set location as numeric
-Plots3$Dist_west<-as.numeric(as.character(Plots3$Dist_west))
-Plots3$Dist_south<-as.numeric(as.character(Plots3$Dist_south))
 
-summary(Plots3)
+
+
 
 #tidy data so that only important bits are kept
 Plots_final<-Plots3[ -c(3,8:19,24,25) ]
