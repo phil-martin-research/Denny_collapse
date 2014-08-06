@@ -22,7 +22,7 @@ setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse
 #transect Latitude and longitude
 Coord<-read.csv("Transect_coords.csv")
 #data on trees
-Plots<-read.csv("Denny_plots_edit3.csv")
+Plots<-read.csv("Denny_plots_edit4.csv")
 
 #first organise data to give plot level information
 head(Plots)
@@ -55,7 +55,6 @@ Plots_U<-subset(Plots,En.Un=="Unenclosed")
 Block_dist<-data.frame(Block=unique(Plots_E$Block_new),Distance=(unique(Plots_E$Block_new)*20)-20)
 Plots_E$Dist_South2<-NA
 Plots_E$Dist_West2<-Plots_E$Dist_west-10
-str(Plots2)
 #calculate distance south
 for (i in 1:nrow(Block_dist)){
   Plots_E$Dist_South2<-ifelse(Plots_E$Block_new==Block_dist$Block[i],Plots_E$Dist_south-Block_dist$Distance[i],Plots_E$Dist_South2)
@@ -72,18 +71,12 @@ str(Plots2)
 plot(Coord_E)
 points(Plots2$Easting1,Plots2$Northing1)
 
-dev.off()
 ggplot(Plots2,aes(x=Easting1,y=Northing1))+geom_point(shape=1)+facet_wrap(~Year)
 
 #################################################################
 #now do the same for the unenclosed transect
 #work out distance for each plot for enclosed data
 ################################################################
-
-head(Plots_U)
-
-plot(Plots_U$Dist_west,Plots_U$Dist_south)
-plot(Coord_U)
 
 #work out national grid coordinates for each plot
 Block_dist_U<-data.frame(Block=unique(Plots_U$Block_new),Distance=(unique(Plots_U$Block_new-51)*20))
@@ -108,7 +101,7 @@ plot(Plots2U$Dist_West2,Plots2U$Dist_South2)
 head(Plots2U)
 plot(Plots2U$EASTING,Plots2U$NORTHING)
 plot(Plots2U$EASTING,Plots2U$Easting1)
-plot(Plots2U$NORTHING,Plots2U$Northing1)
+plot(Plots2U$NORTHING1,Plots2U$Northing1)
 
 
 ggplot(Plots2U,aes(x=Easting1,y=Northing1,colour=Status))+geom_point(shape=1)+facet_wrap(~Year)
