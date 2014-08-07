@@ -52,25 +52,22 @@ Plots_E<-subset(Plots,En.Un=="Enclosed")
 Coord_U<-subset(Coord2,Transect=="Unenclosed")
 Plots_U<-subset(Plots,En.Un=="Unenclosed")
 
-
-
 #work out distance for each plot for enclosed data
 Block_dist<-data.frame(Block=unique(Plots_E$Block_new),Distance=(unique(Plots_E$Block_new)*20)-20)
 Plots_E$Dist_South2<-NA
 Plots_E$Dist_West2<-Plots_E$Dist_west-10
+
 #calculate distance south
 for (i in 1:nrow(Block_dist)){
   Plots_E$Dist_South2<-ifelse(Plots_E$Block_new==Block_dist$Block[i],Plots_E$Dist_south-Block_dist$Distance[i],Plots_E$Dist_South2)
 }
 Plots2<-merge(Plots_E,Coord_E,by.x="Block_new",by.y="Block")
-head(Plots2)
+
 #calculate distance east and north
 for (i in 1:nrow(Plots2)){
   Plots2$Easting1[i]<-Plots2$EASTING[i]-Plots2$Dist_West2[i]
   Plots2$Northing1[i]<-Plots2$NORTHING[i]-Plots2$Dist_South2[i]
 }
-str(Plots2)
-
 plot(Coord_E)
 points(Plots2$Easting1,Plots2$Northing1)
 
@@ -98,21 +95,21 @@ for (i in 1:nrow(Plots2U)){
   Plots2U$Easting1[i]<-Plots2U$EASTING[i]-Plots2U$Dist_West2[i]
   Plots2U$Northing1[i]<-Plots2U$NORTHING[i]-Plots2U$Dist_South2[i]
 }
-
 ggplot(Plots2U,aes(x=Easting1,y=Northing1,colour=DBH))+geom_point(shape=16,size=4)+facet_wrap(~Year)
-
 
 #put data back together again
 Plots_comb<-rbind(Plots2,Plots2U)
 
 #calculate DBH where needed
+#correct erronious DBH/GBH measures
+Plots_comb$DBH<-ifelse(Plots_comb$Tree_ID==1253&Plots_comb$Year==1996,NA,Plots_comb$DBH)
+Plots_comb$GBH<-ifelse(Plots_comb$Tree_ID==1253&Plots_comb$Year==1996,221,Plots_comb$GBH)
+
 for (i in 1:nrow(Plots_comb)){
   Plots_comb$DBH[i]<-ifelse(is.na(Plots_comb$DBH[i])&Plots_comb$DBH2[i]!=0,Plots_comb$DBH2[i],Plots_comb$DBH[i])
 }
-
 hist(Plots_comb$DBH)
 
-ggplot(Plots_comb,aes(x=Easting1,y=Northing1,colour=DBH,alpha=DBH))+geom_point(shape=16)+facet_wrap(~Year)+scale_colour_gradient(low="light grey",high="dark green",limits=c(10,240))
 
 #create column to give size classes of 10 cm intervals
 Class<-c(seq(0,100,10),seq(120,140,20))
@@ -159,21 +156,14 @@ for (i in 1:nrow(Plots_comb2)){
   Plots_comb2$Year[i]<-ifelse(Plots_comb2$Year[i]<=1959,1959,Plots_comb2$Year[i])
 }
 
-
-str(Plots_comb2)
-
-Plots_2014<-subset(Plots_comb,Year==2014)
-
-
-ggplot(Plots_2014,aes(x=Transect,y=DBH))+geom_point()
-
 #remove trees with no dbh measurements
 Plots3<-Plots_comb2[complete.cases(Plots_comb2$DBH_mean),]
 head(Plots3)
 ggplot(Plots3,aes(x=Year,y=DBH_mean))+geom_point()+facet_wrap(~Transect)
 
 #set as snag or not
-Plots3$Snag<-as.numeric(as.character(Plots3$Snag))
+head(Plots3)
+Plots3$Snag<-as.numeric(as.character(Plots3$Snag_h))
 Plots3$Snag<-ifelse(is.na(Plots3$Snag),"No","Yes")
 
 
@@ -183,10 +173,10 @@ ggplot(Plots3,aes(Easting1,Northing1,colour=as.factor(Snag)))+geom_point(shape=1
 summary(Plots3)
 
 Plots_final<-data.frame(Block=Plots3$Block_new,Year=Plots3$Year,Tree_ID=Plots3$Tree_ID,GBH=Plots3$GBH,DBH=Plots3$DBH_mean,
-                        Status=Plots3$Status2,Snag=as.factor(Plots3$Snag),Species=as.factor(Plots3$Sp),Easting=Plots3$Easting1,Northing=Plots3$Northing1)
+                        Status=Plots3$Status2,Snag=as.factor(Plots3$Snag),Species=as.factor(Plots3$Sp),Easting=Plots3$Easting1,Northing=Plots3$Northing1,In_out=Plots3$In_Out)
 
 
-head(Plots_final)
+ggplot(Plots_final,aes(x=as.factor(Block),y=DBH))+geom_boxplot()+facet_wrap(~Year)
 
 #save edited csv
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
