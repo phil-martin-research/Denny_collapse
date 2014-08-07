@@ -25,7 +25,7 @@ Coord<-read.csv("Transect_coords.csv")
 Plots<-read.csv("Denny_plots_edit4.csv")
 
 #first organise data to give plot level information
-head(Plots)
+summary(Plots)
 head(Coord)
 
 #give block names to coordinates
@@ -37,6 +37,8 @@ Plots<-Plots[with(Plots, order(Block_new)), ]
 #convert distances south and west to numeric
 Plots$Dist_west<-as.numeric(as.character(Plots$Dist_west))
 Plots$Dist_south<-as.numeric(as.character(Plots$Dist_south))
+#define areas as in or out of transect based on west and south distances, if they are negative they are out
+Plots$In_Out<-as.factor(ifelse(Plots$Dist_west<0|Plots$Dist_south<0,"Out","In"))
 
 #convert coordinates into OS grid
 Coord2<-cbind(Coord,(gps_latlon2gr(latitude=Coord$lat,longitude=Coord$lon)[,2:3]))
@@ -49,6 +51,7 @@ Plots_E<-subset(Plots,En.Un=="Enclosed")
 #subset for unenclosed transect
 Coord_U<-subset(Coord2,Transect=="Unenclosed")
 Plots_U<-subset(Plots,En.Un=="Unenclosed")
+
 
 
 #work out distance for each plot for enclosed data
@@ -80,6 +83,7 @@ ggplot(Plots2,aes(x=Easting1,y=Northing1))+geom_point(shape=1)+facet_wrap(~Year)
 
 #work out national grid coordinates for each plot
 Block_dist_U<-data.frame(Block=unique(Plots_U$Block_new),Distance=(unique(Plots_U$Block_new-51)*20))
+Block_dist_U<-Block_dist_U[complete.cases(Block_dist_U),]
 Plots_U$Dist_South2<-Plots_U$Dist_west-10
 Plots_U$Dist_West2<-NA
 #calculate distance south for each tree
@@ -88,33 +92,27 @@ for (i in 1:nrow(Block_dist_U)){
 }
 
 Plots2U<-merge(Plots_U,Coord_U,by.x="Block_new",by.y="Block")
-head(Plots2U)
+subset(Plots2U,Year==2014)
 #calculate distance east
 for (i in 1:nrow(Plots2U)){
   Plots2U$Easting1[i]<-Plots2U$EASTING[i]-Plots2U$Dist_West2[i]
   Plots2U$Northing1[i]<-Plots2U$NORTHING[i]-Plots2U$Dist_South2[i]
 }
 
-plot(Plots2U$Dist_west,Plots2U$Dist_south)
-plot(Plots2U$Dist_West2,Plots2U$Dist_South2)
-
-head(Plots2U)
-plot(Plots2U$EASTING,Plots2U$NORTHING)
-plot(Plots2U$EASTING,Plots2U$Easting1)
-plot(Plots2U$NORTHING1,Plots2U$Northing1)
-
-
-ggplot(Plots2U,aes(x=Easting1,y=Northing1,colour=Status))+geom_point(shape=1)+facet_wrap(~Year)
+ggplot(Plots2U,aes(x=Easting1,y=Northing1,colour=DBH))+geom_point(shape=16,size=4)+facet_wrap(~Year)
 
 
 #put data back together again
-Plots_comb<-rbind(Plots2U,Plots2)
-
+Plots_comb<-rbind(Plots2,Plots2U)
 
 #calculate DBH where needed
 for (i in 1:nrow(Plots_comb)){
   Plots_comb$DBH[i]<-ifelse(is.na(Plots_comb$DBH[i])&Plots_comb$DBH2[i]!=0,Plots_comb$DBH2[i],Plots_comb$DBH[i])
 }
+
+hist(Plots_comb$DBH)
+
+ggplot(Plots_comb,aes(x=Easting1,y=Northing1,colour=DBH,alpha=DBH))+geom_point(shape=16)+facet_wrap(~Year)+scale_colour_gradient(low="light grey",high="dark green",limits=c(10,240))
 
 #create column to give size classes of 10 cm intervals
 Class<-c(seq(0,100,10),seq(120,140,20))
@@ -162,10 +160,17 @@ for (i in 1:nrow(Plots_comb2)){
 }
 
 
+str(Plots_comb2)
+
+Plots_2014<-subset(Plots_comb,Year==2014)
+
+
+ggplot(Plots_2014,aes(x=Transect,y=DBH))+geom_point()
+
 #remove trees with no dbh measurements
 Plots3<-Plots_comb2[complete.cases(Plots_comb2$DBH_mean),]
 head(Plots3)
-
+ggplot(Plots3,aes(x=Year,y=DBH_mean))+geom_point()+facet_wrap(~Transect)
 
 #set as snag or not
 Plots3$Snag<-as.numeric(as.character(Plots3$Snag))
