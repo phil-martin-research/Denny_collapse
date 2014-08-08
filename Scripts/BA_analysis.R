@@ -126,7 +126,28 @@ M0<-lme(BA~1,random=~Year|Block,data=BA_change2,method="REML")
 M1<-lme(BA~Year2,random=~Year|Block,data=BA_change2,method="REML")
 M2<-lme(log(BA+1)~Year2,random=~Year|Block,data=BA_change2,method="REML")
 
-M3<-glmmPQL(BA~Year2,random=~Year|Block,correlation=corSpher(form=~Easting+Northing|Year),data=BA_change2,family="gaussian")
+M3<-lme(BA~Year2,random=list(~1|Block),correlation=corSpher(form=~Easting+Northing|Block),data=BA_change3)
+
+
+group2<-factor(rep("a",nrow(BA_change2)))
+
+BA_change3<-cbind(BA_change2,group2)
+
+
+detach(BA_change3)
+
+
+count(BA_change,vars = c("Block","Year"))
+
+
+
+M3<-glmmPQL(BA~Year2,random=~1|group2,correlation=corLin(form=~Easting+Northing|group2),family="gaussian")
+plot(M3)
+
+
+
+
+
 
 plot(M3)
 
