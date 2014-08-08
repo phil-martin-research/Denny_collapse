@@ -36,10 +36,41 @@ SD_melt$Transect<-ifelse(SD_melt$Block>=51,"Unenclosed","Enclosed")
 SD_melt$Block<-as.factor(SD_melt$Block)
 SD_melt_CC<-SD_melt[complete.cases(SD_melt),]
 
-#plot time series of stem density change per plot for both transects
-ggplot(SD_melt_CC,aes(x=Year,y=SD,group=Block,colour=Transect))+geom_line()+geom_point()+facet_wrap(~Block)
+
+#merge Northing and Easting data onto Stem density data
+ggplot(cbind(SD_melt_CC,BA_change_CC),aes(x=SD,y=BA))+geom_point()+facet_grid(Year~Transect)+geom_smooth(method="lm",se=F)
+
+head(BA_change_CC)
+SD_melt_CC2<-((merge(y=Location,x=SD_melt_CC,by.x=c("Block"),by.y=c("Plot_number"),all.x=F)))
 
 
+
+#look at spatial autocorrelation of stem density
+head(BA_change2)
+SD_melt_CC2$Transect<-as.factor(SD_melt_CC2$Transect)
+
+#now do comparison for each years worth of data
+Years<-unique(SD_melt_CC2$Year)
+Semi_var<-NULL
+for (i in 1:length(Years)){
+  Plots_year<-subset(SD_melt_CC2,Year==Years[i])
+  dists<-dist(Plots_year[,5:6])
+  breaks<-seq(0,2000,20)
+  v1 <- variog(coords = Plots_year[,5:6], data = Plots_year[,3], breaks = breaks)
+  v1.summary <- cbind(c(1:length(v1$v)), v1$v, v1$n,Years[i])
+  colnames(v1.summary) <- c("lag", "semi", "No_pairs","Year")
+  v1.summary<-data.frame(v1.summary)
+  v1.summary$Year<-Years[i]
+  v1.summary$Distance<-v1.summary$lag*20
+  Semi_var<-rbind(Semi_var,v1.summary)
+}
+
+#plot semi-variogram by year
+theme_set(theme_bw(base_size=12))
+SD_semi<-ggplot(Semi_var,aes(Distance,semi,group=Year))+geom_point(shape=1)+geom_line()+facet_wrap(~Year)
+SD_semi+ylab("semi-variance")+xlab("Distance (m)")+geom_line(stat="smooth",se=F,method="lm",size=2,alpha=0.5,colour="blue")
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("SD_semi.png",width = 8,height=6,units = "in",dpi=300)
 
 
 #models of stem density change

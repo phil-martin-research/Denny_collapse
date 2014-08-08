@@ -14,6 +14,7 @@ library(geoR)
 library(nlme)
 library(MuMIn)
 library(gridExtra)
+library(MASS)
 
 
 #import data
@@ -124,6 +125,12 @@ BA_change2$Year2<-BA_change2$Year-mean(BA_change2$Year)
 M0<-lme(BA~1,random=~Year|Block,data=BA_change2,method="REML")
 M1<-lme(BA~Year2,random=~Year|Block,data=BA_change2,method="REML")
 M2<-lme(log(BA+1)~Year2,random=~Year|Block,data=BA_change2,method="REML")
+
+M3<-glmmPQL(BA~Year2,random=~Year|Block,correlation=corSpher(form=~Easting+Northing|Year),data=BA_change2,family="gaussian")
+
+plot(M3)
+
+?glmmPQL
 
 #plot residuals and qqplots
 grid.arrange(plot(M0),plot(M1),plot(M2),qqnorm(M0),qqnorm(M1),qqnorm(M2),nrow=2)
