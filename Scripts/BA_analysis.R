@@ -74,6 +74,8 @@ Sample_area$Run<-i
 BA_results<-rbind(BA_results,Sample_area)
 }
 
+dput(BA_change3)
+
 #plot
 ggplot(BA_results,aes(Area,Mean_BA,group=Run))+geom_line(alpha=0.2)
 #this result shows that between plot variation is large up until about 0.5 hectares have been sampled
@@ -86,7 +88,7 @@ BA_change2<-((merge(y=Location,x=BA_change_CC,by.x=c("Block"),by.y=c("Plot_numbe
 BA_change_F3<-((merge(y=Location,x=BA_change_F2,by.x=c("Block"),by.y=c("Plot_number"),all.x=F)))
 
 #exploratory plot of basal area
-ggplot(BA_change2,aes(x=Easting,y=Northing,colour=BA))+geom_point(shape=15)+facet_wrap(~Year)
+ggplot(BA_change2,aes(,colour=BA))+geom_point(shape=15)+facet_wrap(~Year)
 
 ############################################
 #explore changes in spatial autocorrelation#
@@ -123,35 +125,24 @@ ggsave("BA_semi.png",width = 8,height=6,units = "in",dpi=300)
 BA_change2$Year2<-BA_change2$Year-mean(BA_change2$Year)
 #run models
 M0<-lme(BA~1,random=~Year|Block,data=BA_change2,method="REML")
-M1<-lme(BA~Year2,random=~Year|Block,data=BA_change2,method="REML")
+M1<-lme(BA~Year2,random=~1|Block,data=BA_change2,method="REML")
 M2<-lme(log(BA+1)~Year2,random=~Year|Block,data=BA_change2,method="REML")
 
-M3<-lme(BA~Year2,random=list(~1|Block),correlation=corSpher(form=~Easting+Northing|Block),data=BA_change3)
+ggplot(data.frame(BA_change2,res=resid(M2)),aes(Easting,Northing,size=abs(res),colour=res))+geom_point()+facet_wrap(~Year)+scale_colour_gradient2(mid="grey")
+
+Variogram(M2,form= ~1|BA,data=BA_change2)
 
 
-group2<-factor(rep("a",nrow(BA_change2)))
-
-BA_change3<-cbind(BA_change2,group2)
-
-
-detach(BA_change3)
+M3<-gls(BA~Year2,correlation=corExp(form=~Easting+Northing|as.factor(Year2)),data=BA_change3,)
+M3.1<-gls(BA~Year2,correlation=corSpher(form=~Easting+Northing|Year),data=BA_change3,)
 
 
-count(BA_change,vars = c("Block","Year"))
+glmmPQL(BA~Year2, random=~1|Block,data=BA_change3,correlation=corExp(form=~Easting+Northing|Block), gaussian)
 
+ggplot(data.frame(BA_change3,res=resid(M1)),aes(Easting,Northing,size=abs(res),colour=res))+geom_point()+facet_wrap(~Year)+scale_colour_gradient2(mid="grey")
 
+ggplot(data.frame(preds=predict(M3.1),BA_change3),aes(x=BA,y=preds,group=Block))+geom_point()+geom_line()
 
-M3<-glmmPQL(BA~Year2,random=~1|group2,correlation=corLin(form=~Easting+Northing|group2),family="gaussian")
-plot(M3)
-
-
-
-
-
-
-plot(M3)
-
-?glmmPQL
 
 #plot residuals and qqplots
 grid.arrange(plot(M0),plot(M1),plot(M2),qqnorm(M0),qqnorm(M1),qqnorm(M2),nrow=2)
@@ -259,4 +250,13 @@ ggplot(BA_change_prop,aes(x=Year,y=exp(lnRR)-1,group=Block))+geom_point(shape=1,
 
 
 ggplot(BA_change_CC,aes(x=BA))+geom_histogram()+facet_grid(Transect~Year)
+
+
+BA_change4<-(BA_change3)[,-8]
+
+write.csv(BA_change4,"SE_example.csv")
+
+
+
+
 
