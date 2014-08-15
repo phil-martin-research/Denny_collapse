@@ -63,7 +63,15 @@ R_pred<-data.frame(R_pred)
 #plot changes in richness
 theme_set(theme_bw(base_size=12))
 R_plot1<-ggplot(Sp_Rich_melt_CC,aes(x=Year,y=Sp_R,group=Block))+geom_point(alpha=0.5,shape=1)+geom_line(alpha=0.2)
+R_plot2<-R_plot1+geom_line(data=R_pred,size=3,aes(x=Year2,y=fit,group=NULL,colour=NULL),colour="blue")
+R_plot3<-R_plot2+geom_line(data=R_pred,size=2,lty=2,aes(x=Year2,y=fit+(1.96*se.fit),group=NULL,colour=NULL),colour="blue")+geom_line(data=R_pred,size=2,lty=2,aes(x=Year2,y=fit-(1.96*se.fit),group=NULL,colour=NULL),colour="blue")
+R_plot4<-R_plot3+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))+scale_x_continuous(breaks=c(1960,1970,1980,1990,2000,2010,2020))+ theme(legend.position="none")
+R_plot4+theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"))+xlab("Year")+ylab("Species richness per plot")
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("Richness_change.png",width = 8,height=6,units = "in",dpi=300)
 
+#alternative plot without lines linking plot changes
+R_plot1<-ggplot(Sp_Rich_melt_CC,aes(x=Year,y=Sp_R,group=Block))+geom_jitter(alpha=0.5,shape=1)
 R_plot2<-R_plot1+geom_line(data=R_pred,size=3,aes(x=Year2,y=fit,group=NULL,colour=NULL),colour="blue")
 R_plot3<-R_plot2+geom_line(data=R_pred,size=2,lty=2,aes(x=Year2,y=fit+(1.96*se.fit),group=NULL,colour=NULL),colour="blue")+geom_line(data=R_pred,size=2,lty=2,aes(x=Year2,y=fit-(1.96*se.fit),group=NULL,colour=NULL),colour="blue")
 R_plot4<-R_plot3+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))+scale_x_continuous(breaks=c(1960,1970,1980,1990,2000,2010,2020))+ theme(legend.position="none")
