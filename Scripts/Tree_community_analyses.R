@@ -93,7 +93,7 @@ Sor_plot1<-ggplot(Sor_similarity,aes(x=Year,y=Sorensen,group=Block))+geom_point(
 Sor_plot2<-Sor_plot1+geom_line(data=Sor_pred,size=3,aes(x=Year2,y=fit,group=NULL,colour=NULL),colour="blue")
 Sor_plot3<-Sor_plot2+geom_line(data=Sor_pred,size=2,lty=2,aes(x=Year2,y=U_CI,group=NULL,colour=NULL),colour="blue")+geom_line(data=Sor_pred,size=2,lty=2,aes(x=Year2,y=L_CI,group=NULL,colour=NULL),colour="blue")
 Sor_plot4<-Sor_plot3+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))+scale_x_continuous(breaks=c(1960,1970,1980,1990,2000,2010,2020))+ theme(legend.position="none")
-Sor_plot4+theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"))+xlab("Year")+ylab("Species richness per plot")
+Sor_plot4+theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold"))+xlab("Year")+ylab("Sorensen similarity")
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("Sorensen_change.png",width = 8,height=6,units = "in",dpi=300)
 
