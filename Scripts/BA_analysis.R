@@ -23,6 +23,7 @@ Location<-read.csv("Plot_coords.csv")
 Location<-unique(Location[,c(3,5:6)])
 DBH<-read.csv("Denny_trees_cleaned.csv")
 head(DBH)
+unique(DBH$Year)
 head(Location)
 #subset trees to give only those inside plots
 DBH<-subset(DBH,In_out=="In")
