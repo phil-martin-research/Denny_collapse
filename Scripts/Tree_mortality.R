@@ -30,10 +30,41 @@ head(Location)
 DBH<-subset(DBH,In_out=="In")
 
 #first some exploratory analysis to look at variation in tree deaths by year
-#subset the data to only include data from 1964
-DBH_64<-subset(DBH,Year<1989&Year>1960)
-head(DBH_64)
-ggplot(DBH,aes(x=as.factor(Status),y=DBH))+geom_boxplot()+facet_wrap(~Year)
+#subset the data to only include data for the enclosed transect
+DBH<-subset(DBH,Block<52)
+
+ggplot(DBH,aes(x=Easting,y=Northing,colour=as.factor(Status)))+geom_point(shape=1)+facet_wrap(~Year)
+
+
+#create loop to give trees that were alive at previous time period
+#loop subsets to give trees that are alive at beginning of survey period
+#and then determines mortality during period (Mort sub)
+#Tree_sub section makes assumption that when a tree is missing from a survey
+#it has died
+
+Surv_years<-cbind(c(1964,1984,1988,1996),c(1984,1988,1996,2014))
+Mort<-NULL
+for (i in 1:nrow(Surv_years)){
+  Alive<-subset(DBH,Year==Surv_years[i,1]&Status==1)[,3]
+  for (y in 1:length(Alive)){
+   Tree_sub<-subset(DBH,Tree_ID==Alive[y])[1,]
+   Tree_sub$Year<-Surv_years[i,2]
+   Tree_sub$Status<-0
+   Mort_sub<-subset(DBH,Tree_ID==Alive[y]&Year==Surv_years[i,2])
+   if(nrow(Mort_sub)==0){
+     Mort_sub2<-Tree_sub
+   }else{
+      Mort_sub2<-Mort_sub
+    }
+  Mort_sub2$Period<-as.factor(paste(Surv_years[i,1],"-",Surv_years[i,2],sep = ""))
+  Mort_sub2$Length<-Surv_years[i,2]-Surv_years[i,1]
+  Mort<-rbind(Mort_sub2,Mort)
+}
+}
+
+#now change status to 1=dead and 0=alive
+Mort$Dead<-ifelse(Mort$Status==1,0,1)
+
 
 
 #toy example for data from 1964 to 1984/88
@@ -74,6 +105,9 @@ for (i in 1:ncol(Distances)){
   Index<-match(min(Distances[,i],na.rm = T),Distances[,i])
   Mort_88_2$Dead_DBH[i]<-Mort_88_2$DBH[Index]
 }
+
+summary(Mort_88_2$Dead_DBH)
+
 
 #model of mortality from 1964-1988
 M0<-glm(Dead~1,data=Mort_88_2,family=binomial(link = "logit"))
