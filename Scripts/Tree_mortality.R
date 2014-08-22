@@ -5,7 +5,7 @@ rm(list=ls(all=TRUE))
 #open packages neeeded for analysis
 library(ggplot2)
 library(plyr)
-library(reshape2)1
+library(reshape2)
 library(ape)
 library(geoR)
 library(nlme)
@@ -17,6 +17,7 @@ library(GGally)
 library(lme4)
 library(fields)
 library(ROCR)
+library(zoo)
 
 #import data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
@@ -65,22 +66,64 @@ for (i in 1:nrow(Surv_years)){
 #now change status to 1=dead and 0=alive
 Mort$Dead<-ifelse(Mort$Status==1,0,1)
 
+#and divide by Length of survey period
+Mort$Dead_corr<-Mort$Dead/Mort$Length
+#and arcsine square root the data
+Mort$Dead_sin<-asin(sqrt(Mort$Dead_corr))
+head(Mort)
+
+#remove trees for which there is no status
+Mort_CC<-Mort[complete.cases(Mort$Dead),]
 
 
-#toy example for data from 1964 to 1984/88
-Alive_64<-subset(DBH_64,Status==1&Year==1964)[,3]
-#create a loop to only give those trees which were alive in 1964 and their status in 1984/88
-Mort_88<-NULL
-for (i in 1:length(Alive_64)){
-Mort<-subset(DBH_64,Tree_ID==Alive_64[i]&Year==1988)
-Mort_88<-rbind(Mort_88,Mort)
-}
-head(Mort_88,n = 20)
+ggplot(Mort_CC,aes(x=DBH,y=Dead_sin))+facet_wrap(~Period)+geom_smooth(method="glm",formula=y ~ poly(x, 2, raw=TRUE))+geom_rug()+geom_point()
 
-#change status to 1=dead, 0=alive
-Mort_88$Dead<-ifelse(Mort_88$Status==1,0,1)
-Mort_88_2<-Mort_88[complete.cases(Mort_88[,12]),]
-summary(Mort_88_2)
+M1<-lmer(Dead_sin~DBH+(1|Tree_ID),data=Mort)
+M2<-glmer(Dead~DBH+(1|Tree_ID),data=Mort_CC,family=binomial(link="logit"))
+M3<-lmer(Dead_sin~DBH+I(DBH^2)+Period+(1|Tree_ID),data=Mort)
+M4<-lmer(Dead_sin~DBH+I(DBH^2)+Period*DBH+(1|Tree_ID),data=Mort_CC)
+M5<-lmer(Dead_sin~DBH+I(DBH^2)+Period*DBH+Period*I(DBH^2)+(1|Tree_ID),data=Mort)
+M6<-lmer(Dead_sin~DBH+I(DBH^2)+Species+(1|Tree_ID),data=Mort)
+M7<-lmer(Dead_sin~DBH+I(DBH^2)+DBH*Species+(1|Tree_ID),data=Mort)
+
+
+plot(Mort_CC$DBH,(sin(predict(M2,re.form=NA)))^2)
+plot(Mort_CC$DBH,Mort_CC$Dead_corr)
+plot(Mort_CC$DBH,resid(M2))
+plot(fitted(M2),resid(M2))
+
+
+fit_dead<-(data.frame(DBH=Mort_CC$DBH,fit=(sin(predict(M2,re.form=NA)))^2))
+fit_dead<-fit_dead[with(fit_dead,order(DBH)),]
+lines(fit_dead$DBH,fit_dead$fit,col="red")
+rolling<-data.frame(Dead=Mort_CC$Dead_corr,DBH=Mort_CC$DBH)
+rolling<-rolling[with(rolling,order(DBH)),]
+
+
+
+
+
+#bin data into 5cm DBH classes
+
+Mort_CC$bin <- cut(Mort_CC$DBH,seq(0,max(Mort_CC$DBH),5))
+Mort_bin <- ddply(Mort_CC, "bin", function(DF) {
+  data.frame(mean=numcolwise(mean)(DF), length=numcolwise(length)(DF))
+})
+head(Mort_bin)
+
+ggplot(Mort_bin,aes(x=mean.DBH,y=mean.Dead_corr,size=length.DBH))+geom_point()
+
+
+AICc(M1,M2,M3,M4,M5,M6,M7)
+
+M2<-lmer(Dead~DBH+(Length|Tree_ID),data=Mort,family=binomial(link = "logit"))
+M3<-glmer(cbind(Dead,Length-Dead)~DBH+I(DBH^2)+(1|Tree_ID),data=Mort,family=binomial)
+
+AICc(M2,M3)
+summary(M2)
+
+
+
 #work out distance to nearest dead tree
 Distances<-rdist(Mort_88_2[9:10])
 Mort_88_2$Tree_ID
