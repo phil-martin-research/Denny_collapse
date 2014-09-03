@@ -16,10 +16,12 @@ library(reshape2)
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 Trees<-read.csv("Denny_trees_cleaned.csv")
 head(Trees)
-#subset trees to give only those inside plots
-Tress<-subset(Trees,In_out=="In")
-
-
+#subset trees to give only those inside plots that are alive
+Trees<-subset(Trees,In_out=="In")
+Trees<-subset(Trees,Year>=1964)
+Trees<-subset(Trees,Status==1)
+Trees<-subset(Trees,Block!=25)
+Trees<-subset(Trees,Block!=26)
 
 #produce counts of species per block per year
 Sp_counts<-count(Trees,vars = c("Species","Block","Year"))
@@ -44,14 +46,13 @@ for (i in 1:length(Blocks)){
 head(Sor_similarity)
 ggplot(Sor_similarity,aes(x=Year,y=Sorensen,group=Block))+geom_point()+geom_line()+facet_wrap(~Block)
 
-head(Sor_similarity)
-
 #model of species turnover measured using sorensen similarity
 #analyse this in a mixed model
 
 #remove fist value where sorensen is = 1
 Sor_similarity2<-subset(Sor_similarity,Sorensen!=1)
-#and add new varibale to reduce correlation of fixed effects
+
+#and add new variable to reduce correlation of fixed effects
 Sor_similarity2$Year2<-Sor_similarity2$Year-mean(Sor_similarity2$Year)
 
 #now run models
@@ -74,18 +75,15 @@ Model_average<-model.avg(Models,fit=T)
 #predicts change in sorenson
 
 summary(Sor_similarity2$Year2)
-Time<-data.frame(Year2=seq(1964,2014,1)-(mean(Sor_similarity2$Year)))
+Time<-data.frame(Year2=seq(1984,2014,1)-(mean(Sor_similarity2$Year)))
 Sor_pred<-predict(Model_average,newdata=Time,se.fit=T,level=0)
 Sor_pred$Time<-Time+(mean(Sor_similarity2$Year))
 Sor_pred<-data.frame(Sor_pred)
 Sor_pred$U_CI<-plogis(Sor_pred$fit+(1.96*Sor_pred$se.fit))
 Sor_pred$L_CI<-plogis(Sor_pred$fit-(1.96*Sor_pred$se.fit))
 Sor_pred$fit<-plogis(Sor_pred$fit)
+Sor_pred<-rbind(Sor_pred,data.frame(fit=1,se.fit=1,Year2=1964,U_CI=1,L_CI=1))
 head(Sor_pred)
-
-plogis(1)
-plogis(0.8)
-plogis(0.6)
 
 #plot changes in sorenson
 theme_set(theme_bw(base_size=12))
@@ -99,8 +97,14 @@ ggsave("Sorensen_change.png",width = 8,height=6,units = "in",dpi=300)
 
 
 
-#add ndms plot here
+##################################################################################################
+#NDMS plots communities###########################################################################
+##################################################################################################
+
 Sp_counts2[is.na(Sp_counts2)]<-0
+#lump together 1996 and 1999 and get rid of 1984 and 1988
+Sp_counts2[Sp_counts2==1996]<-1999
+Sp_counts2<-Sp_counts2[!(Sp_counts2$Year %in% c(1988,1984)),]
 #remove block and year
 Sp_counts3<-Sp_counts2[,-c(1:2)]
 
@@ -114,24 +118,43 @@ NMDS$transect<-ifelse(NMDS$Plot>51,"Unenclosed","Enclosed")
 
 #make a plot of the nmds
 theme_set(theme_bw(base_size=12))
-NMDS_p1<-ggplot(NMDS,aes(x=MDS1,y=MDS2,colour=as.factor(Year),group=Plot))+geom_point(size=1,shape=1)+facet_grid(transect~Year)
+NMDS_p1<-ggplot(NMDS,aes(x=MDS1,y=MDS2,colour=as.factor(Year),group=Plot))+geom_point(size=4,alpha=0.5)+facet_wrap(~Year)
 NMDS_p2<-NMDS_p1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))+scale_x_continuous(breaks=c(-0.4,0,0.4))+ theme(legend.position="none")
 NMDS_p2+theme(axis.text=element_text(size=8),axis.title=element_text(size=14,face="bold"))
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("NMDS.png",width = 8,height = 4,units = "in",dpi = 300)
 
 
-head(NMDS)
+#################################################################################################
+#now produce loop of similarity in community composition across different plots##################
+#################################################################################################
 
-#add elipses around points
-?ordiellipse
+Sp_counts2[is.na(Sp_counts2)]<-0
+#lump together 1996 and 1999 and get rid of 1984 and 1988
+Sp_counts2[Sp_counts2==1996]<-1999
+Sp_counts2<-Sp_counts2[!(Sp_counts2$Year %in% c(1988,1984)),]
 
-ord<-ordiellipse(vare.mds0, NMDS$Year, display = "sites", kind = "se", conf = 0.95, label = T)
-df_ell <- data.frame()
-for(y in unique(NMDS$Year)){
-  df_ell <- rbind(df_ell, cbind(as.data.frame(with(NMDS[NMDS$Year==y,],
-            veganCovEllipse(ord[[y]]$cov,ord[[y]]$center,ord[[y]]$scale))),group=y))
+#now set up loop to carry out similarity analysis comparing each block to itself in 1959
+
+Year<-unique(Sp_counts2$Year)
+Blocks<-data.frame(Blocks=unique(Sp_counts2$Block))
+Blocks$From<-seq(1,3601,60)
+Blocks$To<-seq(60,3660,60)
+Sor_similarity2<-NULL
+
+for (i in 1:length(Year)){
+  Block_subset<-subset(Sp_counts2,Year==Year[i])
+  Block_subset2<-Block_subset[-c(1:2)]
+  Sorensen<-1-vegdist(Block_subset2,upper=T)
+  for (h in 1:nrow(Blocks)){
+    Sor_mean<-mean(Sorensen[Blocks$From[h]:Blocks$To[h]])
+    Sor_block<-data.frame(Block=Blocks$Blocks[h],Year=Year[i],Sorensen=Sor_mean)
+    Sor_similarity2<-rbind(Sor_similarity2,Sor_block)
+}
 }
 
-#create figure with ellipses
-ggplot(NMDS,aes(x=MDS1,y=MDS2,colour=as.factor(Year),group=Plot))+geom_point(size=4,alpha=0.8)+facet_wrap(~Year)
+
+Sor_hist<-ggplot(Sor_similarity2,aes(x=Sorensen))+geom_histogram(binwidth=0.05)+facet_wrap(~Year)+xlab("mean Sorensen similarity to other plots")
+Sor_hist+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+ylab("number of plots")
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("Sor_hist.png",width = 8,height = 4,units = "in",dpi = 300)

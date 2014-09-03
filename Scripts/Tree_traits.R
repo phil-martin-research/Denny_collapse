@@ -71,6 +71,9 @@ BA_block<-dcast(BA_melt, Year + Block ~ variable, function(x) sum(na.omit(x)/400
 TT_block$BA_sum<-BA_block$BA
 
 
-ggplot(TT_block,aes(x=Year,y=(L_w/BA_sum),group=Block))+geom_point(shape=1,alpha=0.2)+geom_line(alpha=0.2)+geom_smooth(data=TT_block,aes(group=NULL),size=3,colour="blue",method="lm")
+plot(BA_block$BA,TT_block$H_w)
+
+
+ggplot(TT_block,aes(x=Year,y=BA_sum,group=Block))+geom_point(shape=1,alpha=0.2)+geom_line(alpha=0.2)+geom_smooth(data=TT_block,aes(group=NULL),size=3,colour="blue",method="lm")
 
 

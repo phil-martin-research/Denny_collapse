@@ -22,11 +22,10 @@ setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse
 Location<-read.csv("Plot_coords.csv")
 Location<-unique(Location[,c(3,5:6)])
 DBH<-read.csv("Denny_trees_cleaned.csv")
-head(DBH)
-unique(DBH$Year)
-head(Location)
-#subset trees to give only those inside plots
+#subset trees to give only those inside plots that are alive
 DBH<-subset(DBH,In_out=="In")
+DBH<-subset(DBH,Year>=1964)
+DBH<-subset(DBH,Status==1)
 
 
 #####################################
@@ -54,8 +53,10 @@ BA_change_F2<-BA_change_F[complete.cases(BA_change_F),]
 #plot time series of BA for both transects
 ggplot(BA_change_CC,aes(x=Year,y=BA,group=Block,colour=Transect))+geom_line()+geom_point()+facet_wrap(~Block)
 
+##############################################################
+#test change in basal area as a function of area sampled#####
+#############################################################
 
-#test change in basal area as a function of area sampled
 Plots_2014<-subset(BA_change_CC,Year==2014)
 BA_area<-NULL
 BA_area$Plots<-1:nrow(Plots_2014)
@@ -81,7 +82,10 @@ dput(BA_change3)
 ggplot(BA_results,aes(Area,Mean_BA,group=Run))+geom_line(alpha=0.2)
 #this result shows that between plot variation is large up until about 0.5 hectares have been sampled
 
-#merge Northing and Easting data onto Basal Area data
+###########################################################################
+#merge Northing and Easting data onto Basal Area data######################
+###########################################################################
+
 head(BA_change_CC)
 BA_change2<-((merge(y=Location,x=BA_change_CC,by.x=c("Block"),by.y=c("Plot_number"),all.x=F)))
 
@@ -120,7 +124,6 @@ BA_semi+ylab("semi-variance")+xlab("Distance (m)")+geom_smooth(se=F,method="lm",
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("BA_semi.png",width = 8,height=6,units = "in",dpi=300)
 
-
 #models of change of total BA with time
 #create second variable for year so that it is centred
 BA_change2$Year2<-BA_change2$Year-mean(BA_change2$Year)
@@ -131,18 +134,6 @@ M2<-lme(log(BA+1)~Year2,random=~Year|Block,data=BA_change2,method="REML")
 
 ggplot(data.frame(BA_change2,res=resid(M2)),aes(Easting,Northing,size=abs(res),colour=res))+geom_point()+facet_wrap(~Year)+scale_colour_gradient2(mid="grey")
 
-Variogram(M2,form= ~1|BA,data=BA_change2)
-
-
-M3<-gls(BA~Year2,correlation=corExp(form=~Easting+Northing|as.factor(Year2)),data=BA_change3,)
-M3.1<-gls(BA~Year2,correlation=corSpher(form=~Easting+Northing|Year),data=BA_change3,)
-
-
-glmmPQL(BA~Year2, random=~1|Block,data=BA_change3,correlation=corExp(form=~Easting+Northing|Block), gaussian)
-
-ggplot(data.frame(BA_change3,res=resid(M1)),aes(Easting,Northing,size=abs(res),colour=res))+geom_point()+facet_wrap(~Year)+scale_colour_gradient2(mid="grey")
-
-ggplot(data.frame(preds=predict(M3.1),BA_change3),aes(x=BA,y=preds,group=Block))+geom_point()+geom_line()
 
 
 #plot residuals and qqplots
@@ -150,14 +141,14 @@ grid.arrange(plot(M0),plot(M1),plot(M2),qqnorm(M0),qqnorm(M1),qqnorm(M2),nrow=2)
 #the untransformed data looks best
 
 #perform model averaging for null and yearly change models
-Models<-dredge(B2A,rank = AICc,trace = T,REML=F)
+Models<-dredge(M1,rank = AICc,trace = T,REML=F)
 Model_sel<-mod.sel(Models)
 Model_sel$R_squared<-c(r.squaredGLMM(M1)[1],r.squaredGLMM(M0)[1])
 Model_average<-model.avg(Models,fit=T)
 #model of change per year is much better than null model
 
-Time<-data.frame(Year2=seq(1959,2014,1)-(mean(BA_change2$Year)))
-BA_pred<-predict(B2A,newdata=Time,se.fit=T,backtransform=T,level=0,)
+Time<-data.frame(Year2=seq(1964,2014,1)-(mean(BA_change2$Year)))
+BA_pred<-predict(M1,newdata=Time,se.fit=T,backtransform=T,level=0,)
 BA_pred$Time<-Time+(mean(BA_change2$Year))
 BA_pred<-data.frame(BA_pred)
 
@@ -175,12 +166,7 @@ ggsave("BA_change.png",width = 8,height=6,units = "in",dpi=300)
 #analysis of beech BA change#####
 #################################
 
-plot(BA_change2$BA,BA_change_F3$BA)
 
-ggplot(BA_change_F3,aes(x=Year,y=BA,group=Block))+geom_point()+geom_line()+facet_wrap(~Block)
-
-
-head(BA_change2)
 BA_change_F3$Transect<-as.factor(BA_change_F3$Transect)
 
 #now do comparison for each years worth of data
@@ -226,7 +212,7 @@ Model_sel$R_squared<-c(r.squaredGLMM(M1)[1],r.squaredGLMM(M0)[1])
 Model_average<-model.avg(Models,fit=T)
 #model of change per year is much better than null model
 
-Time<-data.frame(Year2=seq(1959,2014,1)-(mean(BA_change_F3$Year)))
+Time<-data.frame(Year2=seq(1964,2014,1)-(mean(BA_change_F3$Year)))
 BA_pred<-predict(M1,newdata=Time,se.fit=T,backtransform=T,level=0,)
 BA_pred$Time<-Time+(mean(BA_change_F3$Year))
 BA_pred<-data.frame(BA_pred)
@@ -241,23 +227,18 @@ setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse
 ggsave("BA_change_Beech.png",width = 8,height=6,units = "in",dpi=300)
 
 
-#calculate change in beech BA as percentage relative to 1959
+##################################################################################
+#histograms to look at possible bimodal distribution of basal area################
+#################################################################################
 
-BA_change_prop<-merge(BA_change_F3,subset(BA_change_F3,Year==1959)[,c(1,3)],by="Block")
-head(BA_change_prop)
-BA_change_prop$lnRR<-log(BA_change_prop$BA.x)-log(BA_change_prop$BA.y)
+BA_change_CC2<-BA_change_CC
+BA_change_CC2[BA_change_CC2==1996]<-1999
+BA_change_CC2<-BA_change_CC2[!(BA_change_CC2$Year %in% c(1988,1984)),]
 
-ggplot(BA_change_prop,aes(x=Year,y=exp(lnRR)-1,group=Block))+geom_point(shape=1,alpha=0.5)+geom_line(alpha=0.2)
-
-
-ggplot(BA_change_CC,aes(x=BA))+geom_histogram()+facet_grid(Transect~Year)
-
-
-BA_change4<-(BA_change3)[,-8]
-
-write.csv(BA_change4,"SE_example.csv")
-
-
+BA_hist<-ggplot(BA_change_CC2,aes(x=BA))+geom_histogram(binwidth=10)+facet_wrap(~Year)+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+ylab("number of plots")
+BA_hist+xlab("Basal area per hectare")+ylab("Number of plots")
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("BA_hist.png",width = 8,height = 4,units = "in",dpi = 300)
 
 
 
