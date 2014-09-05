@@ -158,3 +158,56 @@ Sor_hist<-ggplot(Sor_similarity2,aes(x=Sorensen))+geom_histogram(binwidth=0.05)+
 Sor_hist+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+ylab("number of plots")
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("Sor_hist.png",width = 8,height = 4,units = "in",dpi = 300)
+
+#############################################################################
+#create loop to compare 2014 community composition data with that from 1964##
+#############################################################################
+
+
+
+#now set up loop to carry out similarity analysis comparing each block to itself in 1964
+Blocks<-unique(Sp_counts2$Block)
+Sor_similarity<-NULL
+for (i in 1:length(Blocks)){
+  Block_subset<-subset(Sp_counts2,Block==Blocks[i])
+  Block_subset[is.na(Block_subset)]<-0
+  Block_subset2<-Block_subset[-c(1:2)]
+  Block_subset2[is.na(Block_subset2)]<-0
+  Block_subset$Sorensen<-c(1,1-vegdist(Block_subset2)[1:nrow(Block_subset2)-1])
+  Block_subset<-tail(Block_subset,1)
+  Sor_similarity<-rbind(Sor_similarity,Block_subset)
+}
+
+
+mean(Sor_similarity$Sorensen)
+
+Sor_similarity2<-subset(Sor_similarity,Block!=7)
+
+Sor_BA<-cbind(Transect=BA_loss$Transect.x,BA_loss=BA_loss$BA_loss,Sor_similarity2)
+
+ggplot(Sor_BA,aes(x=BA_loss,y=Sorensen,colour=Transect))+geom_point()
+
+
+M1<-lm(Sorensen~BA_loss,data=Sor_BA)
+
+summary(M1)
+
+plot(M1)
+
+plot(Sor_BA$BA_loss,Sor_BA$Sorensen)
+
+?predict.lme
+
+points(Sor_BA$BA_loss,predict(M1),col="red")
+
+Sor_BA2<-subset(Sor_BA,BA_loss<1)
+
+M2<-lm(Sorensen~BA_loss,data=Sor_BA2)
+
+points(Sor_BA2$BA_loss,predict(M2,level=0),col="red")
+
+par(mfrow=c(2,2))
+
+plot(M2)
+
+summary(M2)
