@@ -46,34 +46,37 @@ Tree_traits<-merge(DBH,Traits,by.x="Species",by.y="Code")
 
 #calculate basal area
 head(Tree_traits)
-#calculate basal area per plot per time period
-#for all species
-Tree_traits$BA<-ifelse(DBH$DBH>10,Tree_traits$DBH^2*(pi/4),0)
+
+#calculate total BA
+Tree_traits<-merge(DBH,Traits,by.x="Species",by.y="Code")
+head(Tree_traits)
+
+for (i in 1:nrow(Tree_traits)){
+  Tree_traits$BA[i]<-ifelse(Tree_traits$DBH[i]>10,(Tree_traits$DBH[i]^2*(pi/4))/400,0)
+}
+Tree_BA<-Tree_traits[,-c(1,5:17)]
+head(Tree_BA)
+BA_melt<-melt(Tree_BA, id = c("Block", "Year","Tree_ID"))
+BA_block<-dcast(BA_melt, Year + Block ~ variable, function(x) sum(na.omit(x)/400))
+
+#for individuals
+
+head(Tree_traits)
 
 #calculate the traits weighted by BA
 Tree_traits$L_w<-Tree_traits$Light*Tree_traits$BA
 Tree_traits$N_w<-Tree_traits$Nitrogen*Tree_traits$BA
 Tree_traits$H_w<-Tree_traits$Height*Tree_traits$BA
-Tree_traits<-Tree_traits[,-c(1,5:17)]
+
+Tree_traits<-(Tree_traits[,-c(1,5:17)])
+summary(Tree_traits)
 Tree_trait_melt<-melt(Tree_traits, id = c("Block", "Year","Tree_ID"))
 head(Tree_trait_melt)
-TT_block<-dcast(Tree_trait_melt, Year + Block ~ variable, mean)
+TT_block<-dcast(Tree_trait_melt, Year + Block ~ variable, sum)
 
-#calculate total BA
-Tree_traits<-merge(DBH,Traits,by.x="Species",by.y="Code")
-head(Tree_traits)
-Tree_traits$BA<-ifelse(DBH$DBH>10,Tree_traits$DBH^2*(pi/4),0)
-Tree_BA<-Tree_traits[,-c(1,5:16)]
-BA_melt<-melt(Tree_BA, id = c("Block", "Year","Tree_ID"))
-BA_block<-dcast(BA_melt, Year + Block ~ variable, function(x) sum(na.omit(x)/400))
+summary(TT_block)
+
+
 
 #add dbh to traits
-TT_block$BA_sum<-BA_block$BA
-
-
-plot(BA_block$BA,TT_block$H_w)
-
-
-ggplot(TT_block,aes(x=Year,y=BA_sum,group=Block))+geom_point(shape=1,alpha=0.2)+geom_line(alpha=0.2)+geom_smooth(data=TT_block,aes(group=NULL),size=3,colour="blue",method="lm")
-
-
+ggplot(TT_block,aes(x=Year,y=L_w/BA,group=Block))+geom_point(shape=1,alpha=0.2)+geom_line(alpha=0.2)+geom_smooth(se=F,colour="blue",aes(group=NULL),method="lm",size=2)
