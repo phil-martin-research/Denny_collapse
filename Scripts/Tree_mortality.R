@@ -78,19 +78,23 @@ Mort_CC<-Mort[complete.cases(Mort$Dead),]
 
 ggplot(Mort_CC,aes(x=DBH,y=Dead_sin))+facet_wrap(~Period)+geom_smooth(method="glm",formula=y ~ poly(x, 2, raw=TRUE))+geom_rug()+geom_point()
 
-M1<-lmer(Dead_sin~DBH+(1|Tree_ID),data=Mort)
-M2<-glmer(Dead~DBH+(1|Tree_ID),data=Mort_CC,family=binomial(link="logit"))
-M3<-lmer(Dead_sin~DBH+I(DBH^2)+Period+(1|Tree_ID),data=Mort)
-M4<-lmer(Dead_sin~DBH+I(DBH^2)+Period*DBH+(1|Tree_ID),data=Mort_CC)
-M5<-lmer(Dead_sin~DBH+I(DBH^2)+Period*DBH+Period*I(DBH^2)+(1|Tree_ID),data=Mort)
-M6<-lmer(Dead_sin~DBH+I(DBH^2)+Species+(1|Tree_ID),data=Mort)
-M7<-lmer(Dead_sin~DBH+I(DBH^2)+DBH*Species+(1|Tree_ID),data=Mort)
+M1<-lmer(Dead_sin~DBH+(1|Tree_ID),data=Mort_CC)
+M2<-lmer(Dead_sin~DBH+I(DBH^2)+(1|Tree_ID),data=Mort_CC)
+M3<-lmer(Dead_sin~DBH+I(DBH^2)+Species+(1|Tree_ID),data=Mort_CC)
+M4<-lmer(Dead_sin~DBH*Species+I(DBH^2)+(1|Tree_ID),data=Mort_CC)
+
+AICc(M1,M2,M3,M4)
+
+ggplot(Mort_CC,aes(x=DBH))+geom_histogram()+facet_grid(Species~Year)
 
 
-plot(Mort_CC$DBH,(sin(predict(M2,re.form=NA)))^2)
+plot(Mort_CC$DBH,sin(predict(M2,re.form=NA))^2)
+
+
+plot(Mort_CC$DBH,plogis((predict(M3,re.form=NA))))
 plot(Mort_CC$DBH,Mort_CC$Dead_corr)
-plot(Mort_CC$DBH,resid(M2))
-plot(fitted(M2),resid(M2))
+plot(Mort_CC$DBH,resid(M3))
+plot(fitted(M2),resid(M3))
 
 
 fit_dead<-(data.frame(DBH=Mort_CC$DBH,fit=(sin(predict(M2,re.form=NA)))^2))
