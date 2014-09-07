@@ -126,9 +126,39 @@ plot(Sor_BA2$Perc,resid(M1))
 plot(Sor_BA2$Perc,resid(M2))
 
 
+#look at what happens if  you remove the outliers of percentage >100% increase
+
+Sor_BA3<-subset(Sor_BA2,Perc<1)
+#the model with random slopes and intercept is the most appropriate - so use these random effects
+M1<-lme(qlogis(Sorensen)~Perc,random = ~Perc|Block,data=Sor_BA3)
+M2<-lme(qlogis(Sorensen)~Perc+I(Perc^2),random = ~Perc|Block,data=Sor_BA3)
+
+summary(M2)
+
+
 dredge(M2,rank = AICc,REML=F)
 
 r.squaredGLMM(M2)
 par(mfrow=c(1,1))
 plot(Sor_BA2$Perc,Sor_BA2$Sorensen)
-points(Sor_BA2$Perc,plogis(predict(M2,level=0)),col="red")
+points(Sor_BA3$Perc,plogis(predict(M2,level=0)),col="red")
+
+Preds_var<-data.frame(Perc=seq(-0.95,1,0.001))
+
+#create predictions for model 2
+
+Preds<-data.frame(predict(M2,level=0,newdata = Preds_var,se.fit=T))
+head(Preds)
+Preds$Perc<-seq(-0.95,1,0.001)
+
+theme_set(theme_bw(base_size=12))
+a<-ggplot(Sor_BA2,aes(x=Perc*100,y=Sorensen,group=Block))+geom_point(size=3,alpha=0.5)+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+ylab("Sorensen similarity")
+a+xlab("Percentage basal area change from 1964")+geom_line(data=Preds,aes(x=Perc*100,y=plogis(fit),group=NULL))+geom_line(data=Preds,aes(x=Perc*100,y=plogis(fit+(1.96*se.fit)),group=NULL),lty=2)+geom_line(data=Preds,aes(x=Perc*100,y=plogis(fit-(1.96*se.fit)),group=NULL),lty=2)
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("Sor_BA_trees.png",width = 8,height = 4,units = "in",dpi = 500)
+
+
+
+#need to add (before presentation) analyses on changes in functional traits (light, nitrogen, moisture), 
+#basal area of certain species (holly etc) in collapsed plots, and ground flora from this year & their traits
+#also look at spatial distribution of collapse over the transects by year - possible future directions
