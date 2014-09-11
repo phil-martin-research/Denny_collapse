@@ -20,16 +20,7 @@ library(ROCR)
 
 #import data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
-Location<-read.csv("Plot_coords.csv")
-Location<-unique(Location[,c(3,5:6)])
-DBH<-read.csv("Denny_trees_cleaned.csv")
-head(DBH)
-unique(DBH$Year)
-head(Location)
-#subset trees to give only those inside plots
-DBH<-subset(DBH,In_out=="In")
-#get rid of non-live stems
-DBH<-subset(DBH,Status==1)
+DBH<-read.csv("Denny_plots.csv")
 
 #import trait table
 Traits<-read.csv("Tree_traits.csv")
@@ -73,8 +64,30 @@ summary(Tree_traits)
 Tree_trait_melt<-melt(Tree_traits, id = c("Block", "Year","Tree_ID"))
 head(Tree_trait_melt)
 TT_block<-dcast(Tree_trait_melt, Year + Block ~ variable, sum)
+TT_block$Year<-ifelse(TT_block$Year==1996,1999,TT_block$Year)
+BA_loss$Year.x<-ifelse(BA_loss$Year.x==1996,1999,BA_loss$Year.x)
 
 summary(TT_block)
+summary(BA_loss)
+head(TT_block)
+head(BA_loss)
+
+Traits_BA<-merge(x=TT_block,y=BA_loss,by.x=c("Block","Year"),by.y=c("Block","Year.x"))
+head(Traits_BA)
+
+theme_set(theme_bw(base_size=30))
+ggplot(Traits_BA,aes(x=BA_loss*100,y=L_w/BA.x))+geom_point()+facet_wrap(~Year)+xlab("Percentage change in basal area since 1964")+ylab("Community weighted mean \nlight dependancy")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures/Forest_collapse")
+ggsave("Light_BA_loss.png",width = 12,height = 8,units = "in",dpi = 300)
+
+
+
+theme_set(theme_bw(base_size=30))
+ggplot(Traits_BA,aes(x=BA_loss*100,y=N_w/BA.x))+geom_jitter(shape=1)+facet_wrap(~Year)+xlab("Percentage change in basal area since 1964")+ylab("Community weighted mean \nnitrogen requirement")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures/Forest_collapse")
+ggsave("N_BA_loss.png",width = 12,height = 8,units = "in",dpi = 300)
+
+
 
 
 
