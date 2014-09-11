@@ -1,6 +1,8 @@
 #script to produce csv of all variables of interest at the plot scale from Denny data
 #using 1964 as a baseline
 
+#######need to include trait data & locations!!!
+
 rm(list=ls(all=TRUE))
 
 #open packages neeeded for analysis
