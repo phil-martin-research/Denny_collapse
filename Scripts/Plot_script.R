@@ -156,8 +156,8 @@ Sor_BA3$Year2<-ifelse(Sor_BA3$Year==1996,1999,Sor_BA3$Year)
 #add column to identify transect
 Sor_BA3$Transect<-ifelse(Sor_BA3$Block>51,"Unenclosed","Enclosed")
 
-ggplot(Sor_BA3,aes(x=BAPERCM,y=SorM,colour=Transect))+geom_point()+facet_wrap(~Year2)
-
+#add location data to this
+Sor_BA4<-merge(Sor_BA3,Location,by.x="Block",by.y="Plot_number")
 
 #save all this as a csv
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
