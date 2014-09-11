@@ -19,45 +19,14 @@ library(MASS)
 
 #import data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
-Location<-read.csv("Plot_coords.csv")
-Location<-unique(Location[,c(3,5:6)])
-DBH<-read.csv("Denny_trees_cleaned.csv")
-#subset trees to give only those inside plots that are alive
-DBH<-subset(DBH,In_out=="In")
-DBH<-subset(DBH,Year>=1964)
-DBH<-subset(DBH,Status==1)
+BA<-read.csv("Denny_plots.csv")
 
-
-#####################################
-#analyses of basal area change#######
-#####################################
-head(DBH)
-#calculate basal area per plot per time period
-#for all species
-DBH$BA<-ifelse(DBH$DBH>10,DBH$DBH^2*(pi/4),0)
-#for beech only
-DBH$Beech_BA<-ifelse(DBH$DBH>10&DBH$Species=="F",(DBH$DBH^2*(pi/4)),0)
-
-#total basal area
-BA_change<-melt(with(DBH, tapply(BA,list(Block,Year), function(x) sum(na.omit(x)/400))))
-colnames(BA_change)<-c("Block","Year","BA")
-BA_change$Transect<-ifelse(BA_change$Block>=52,"Unenclosed","Enclosed")
-BA_change_CC<-BA_change[complete.cases(BA_change),]
-
-#total basal area - for beech
-BA_change_F<-melt(with(DBH, tapply(Beech_BA,list(Block,Year), function(x) sum(na.omit(x)/400))))
-colnames(BA_change_F)<-c("Block","Year","BA")
-BA_change_F$Transect<-ifelse(BA_change$Block>=52,"Unenclosed","Enclosed")
-BA_change_F2<-BA_change_F[complete.cases(BA_change_F),]
-
-#plot time series of BA for both transects
-ggplot(BA_change_CC,aes(x=Year,y=BA,group=Block,colour=Transect))+geom_line()+geom_point()+facet_wrap(~Block)
 
 ##############################################################
 #test change in basal area as a function of area sampled#####
 #############################################################
 
-Plots_2014<-subset(BA_change_CC,Year==2014)
+Plots_2014<-subset(BA,Year==2014)
 BA_area<-NULL
 BA_area$Plots<-1:nrow(Plots_2014)
 BA_area$Area<-(BA_area$Plots)*(20*20)
@@ -66,7 +35,7 @@ BA_results<-NULL
 
 #loop to add one plot at a time and calculate mean iterated 1000 times
 for (i in 1:1000){
-  R_sample<-sample(Plots_2014$BA,nrow(Plots_2014))
+  R_sample<-sample(Plots_2014$BAM,nrow(Plots_2014))
   Sample_area<-cbind(BA_area,R_sample)
   nrow(BA_area)
 for (y in 1:length(R_sample)){
@@ -76,30 +45,16 @@ Sample_area$Run<-i
 BA_results<-rbind(BA_results,Sample_area)
 }
 
-dput(BA_change3)
-
 #plot
 ggplot(BA_results,aes(Area,Mean_BA,group=Run))+geom_line(alpha=0.2)
 #this result shows that between plot variation is large up until about 0.5 hectares have been sampled
-
-###########################################################################
-#merge Northing and Easting data onto Basal Area data######################
-###########################################################################
-
-head(BA_change_CC)
-BA_change2<-((merge(y=Location,x=BA_change_CC,by.x=c("Block"),by.y=c("Plot_number"),all.x=F)))
-
-#now for beech basal area as well
-BA_change_F3<-((merge(y=Location,x=BA_change_F2,by.x=c("Block"),by.y=c("Plot_number"),all.x=F)))
 
 
 ############################################
 #explore changes in spatial autocorrelation#
 ###########################################
-head(BA_change2)
-BA_change2$Transect<-as.factor(BA_change2$Transect)
 
-#now do comparison for each years worth of data
+#do this comparison for each year's worth of data
 Years<-unique(BA_change2$Year)
 Semi_var<-NULL
 for (i in 1:length(Years)){
@@ -121,6 +76,12 @@ BA_semi<-ggplot(Semi_var,aes(Distance,semi,group=Year))+geom_point(shape=1)+geom
 BA_semi+ylab("semi-variance")+xlab("Distance (m)")+geom_smooth(se=F,method="lm",size=2)
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("BA_semi.png",width = 8,height=6,units = "in",dpi=300)
+
+
+
+########################################################################################################
+#model change in BA over time###########################################################################
+########################################################################################################
 
 #models of change of total BA with time
 #create second variable for year so that it is centred
@@ -244,11 +205,11 @@ ggsave("BA_hist.png",width = 8,height = 4,units = "in",dpi = 300)
 #################################################################################
 
 #plot time series of BA for both transects
-theme_set(theme_bw(base_size=12))
-BA_plots<-ggplot(BA_change_CC,aes(x=Year,y=BA,group=Block,colour=Transect))+geom_line()+geom_point()+facet_wrap(~Block)+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))+scale_x_continuous(breaks=c(1960,1970,1980,1990,2000,2010,2020))
-BA_plots+ylab("Basal area per hectare")+ theme(axis.text.x = element_text(angle = 90, hjust = 1))
+theme_set(theme_bw(base_size=14))
+BA_plots<-ggplot(BA_change_CC,aes(x=Year,y=BA,group=Block))+facet_wrap(~Block)+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))+scale_x_continuous(breaks=c(1960,1970,1980,1990,2000,2010,2020))
+BA_plots+ylab("Basal area (metres squared per hectare)")+ theme(axis.text.x = element_text(angle = 90, hjust = 1))+geom_line(colour="dark green")+geom_point(colour="dark green")
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures/Forest_collapse")
-ggsave("BA_collapse.png",width = 12,height = 8,units = "in",dpi = 300)
+ggsave("BA_collapse_pres.png",width = 12,height = 8,units = "in",dpi = 300)
 
 #plot time series of beech BA for both transects
 BA_plots<-ggplot(BA_change_F2,aes(x=Year,y=BA,group=Block,colour=Transect))+geom_line()+geom_point()+facet_wrap(~Block)+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))+scale_x_continuous(breaks=c(1960,1970,1980,1990,2000,2010,2020))
@@ -263,19 +224,36 @@ BA_change_F2
 #plots group by whether they have seen >10% increase, >10% decline etc
 
 BA_1964<-subset(BA_change_CC,Year==1964)
-BA_2014<-subset(BA_change_CC,Year==2014)
+BA_1984<-subset(BA_change_CC,Year>=1984)
 
-head(BA_1964)
+head(BA_loss)
 
-BA_loss<-merge(BA_2014,BA_1964,by="Block")
-
+BA_loss<-merge(BA_1984,BA_1964,by="Block")
 BA_loss$BA_loss<-(BA_loss$BA.x-BA_loss$BA.y)/BA_loss$BA.y
-
+BA_loss<-subset(BA_loss,Year.x>1964)
+#add location data to this
+BA_loss2<-merge(BA_loss,Location,by.x="Block",by.y="Plot_number")
+#create a loop to lump 1996 and 1999 data
+BA_loss2$Year_corr<-ifelse(BA_loss2$Year.x==1996,1999,BA_loss2$Year.x)
 
 #histogram of BA change
-ggplot(BA_loss,aes(x=BA_loss*100))+geom_histogram(bin=10)+xlab("Percentage change in basal area (1964-2014)")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+theme_set(theme_bw(base_size=30))
+ggplot(BA_loss,aes(x=BA_loss*100))+geom_histogram(bin=10,fill="dark green")+xlab("Percentage change in basal area since 1964")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))+facet_wrap(~Year_corr)+geom_vline(x=0,lty=2,size=2,alpha=0.5)+ylab("Number of plots")
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures/Forest_collapse")
-ggsave("BA_loss_hist.png",width = 8,height = 8,units = "in",dpi = 300)
+ggsave("BA_loss_hist.png",width = 12,height = 8,units = "in",dpi = 300)
+
+head(BA_loss2)
+
+#map of change over space
+theme_set(theme_bw(base_size=30))
+ggplot(BA_loss2,aes(y=Northing,x=Easting,colour=BA_loss*100))+geom_point(shape=15,size=3)+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))+facet_wrap(~Year_corr)+scale_colour_gradient2(low = "red",high="blue",mid="dark grey")
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures/Forest_collapse")
+ggsave("BA_loss_map.png",width = 12,height = 8,units = "in",dpi = 300)
+
+
+
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures/Forest_collapse")
+ggsave("BA_loss_hist.png",width = 12,height = 8,units = "in",dpi = 300)
 
 
 
@@ -296,4 +274,4 @@ setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse
 ggsave("BA_loss_groups.png",width = 8,height = 8,units = "in",dpi = 300)
 
 
-
+#
