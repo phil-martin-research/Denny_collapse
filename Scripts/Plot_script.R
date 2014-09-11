@@ -214,4 +214,3 @@ head(Sor_BA4)
 #save all this as a csv
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 write.csv(Sor_BA4,"Denny_plots.csv",row.names=F)
-
