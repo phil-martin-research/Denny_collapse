@@ -16,6 +16,7 @@ library(MuMIn)
 library(gridExtra)
 library(MASS)
 library(vegan)
+library(TR8)
 
 #import data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
@@ -30,6 +31,25 @@ Trees<-subset(Trees,Block!=25)
 Trees<-subset(Trees,Block!=26)
 #replace all species codes Qr with Q as they represent the same species
 levels(Trees$Species)[which(levels(Trees$Species)=="Qr")] <- "Q"
+#add species names as a column
+Tree_sp<-read.csv("Tree_sp.csv")
+Trees<-merge(Trees,Tree_sp,by.x="Species",by.y="Code")
+colnames(Trees)[12]<-"Sp_name"
+
+#get trait values for light, moisture and nitrogen from databases
+my_traits<-tr8(unique(as.character(Trees$Sp_name)))
+traits_df<-extract_traits(my_traits)
+
+#put trait values into tree df
+Trees$Light<-NA
+Trees$Moist<-NA
+Trees$Nit<-NA
+for (i in 1:nrow(traits_df)){
+  Trees$Light<-ifelse(Trees$Sp_name==row.names(traits_df)[i],traits_df$ell_light_uk[i],Trees$Light)
+  Trees$Moist<-ifelse(Trees$Sp_name==row.names(traits_df)[i],traits_df$ell_moist_uk[i],Trees$Moist)
+  Trees$Nit<-ifelse(Trees$Sp_name==row.names(traits_df)[i],traits_df$ell_N[i],Trees$Nit)
+}
+
 
 #produce sum of basal area per species per block
 head(Trees)
