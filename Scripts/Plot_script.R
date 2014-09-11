@@ -36,19 +36,6 @@ Tree_sp<-read.csv("Tree_sp.csv")
 Trees<-merge(Trees,Tree_sp,by.x="Species",by.y="Code")
 colnames(Trees)[12]<-"Sp_name"
 
-#get trait values for light, moisture and nitrogen from databases
-my_traits<-tr8(unique(as.character(Trees$Sp_name)))
-traits_df<-extract_traits(my_traits)
-
-#put trait values into tree df
-Trees$Light<-NA
-Trees$Moist<-NA
-Trees$Nit<-NA
-for (i in 1:nrow(traits_df)){
-  Trees$Light<-ifelse(Trees$Sp_name==row.names(traits_df)[i],traits_df$ell_light_uk[i],Trees$Light)
-  Trees$Moist<-ifelse(Trees$Sp_name==row.names(traits_df)[i],traits_df$ell_moist_uk[i],Trees$Moist)
-  Trees$Nit<-ifelse(Trees$Sp_name==row.names(traits_df)[i],traits_df$ell_N[i],Trees$Nit)
-}
 
 
 #produce sum of basal area per species per block
@@ -64,12 +51,35 @@ for (i in 1:nrow(Trees)){
   Trees$BA_Q[i]<-ifelse(Trees$DBH[i]>10&Trees$Species[i]=="Q",(Trees$DBH[i]^2*(pi/4))/400,0)
 }
 
+#get trait values for light, moisture and nitrogen from databases
+my_traits<-tr8(unique(as.character(Trees$Sp_name)))
+traits_df<-extract_traits(my_traits)
+
+#put trait values into tree df
+Trees$Light<-NA
+Trees$Moist<-NA
+Trees$Nit<-NA
+for (i in 1:nrow(traits_df)){
+  Trees$Light<-ifelse(Trees$Sp_name==row.names(traits_df)[i],traits_df$ell_light_uk[i],Trees$Light)
+  Trees$Moist<-ifelse(Trees$Sp_name==row.names(traits_df)[i],traits_df$ell_moist_uk[i],Trees$Moist)
+  Trees$Nit<-ifelse(Trees$Sp_name==row.names(traits_df)[i],traits_df$ell_N[i],Trees$Nit)
+}
+
+#multiply by BA to allow weighting in community weighted mean calculations
+Trees$Light2<-Trees$Light*Trees$BA
+Trees$Moist2<-Trees$Moist*Trees$BA
+Trees$Nit2<-Trees$Nit*Trees$BA
+  
 
 #organise data for community analysis
 Sp<-ddply(Trees, .(Block,Year,Species),summarize,Count=sum(Status))
 #and for analysis of basal area, stem density and speceis richness
-BA<-ddply(Trees, .(Block,Year),summarize,SD=sum(Status),BA=sum(BA),BA_F=sum(BA_F),BA_Q=sum(BA_Q),Sp_R=length(unique(Species)))
+BA<-ddply(Trees, .(Block,Year),summarize,SD=sum(Status),BA=sum(BA),BA_F=sum(BA_F),BA_Q=sum(BA_Q),Sp_R=length(unique(Species)),
+          Light=sum(Light2),Moist=sum(Moist2),Nit=sum(Nit2))
 
+BA$Light<-BA$Light/BA$BA
+BA$Moist<-BA$Moist/BA$BA
+BA$Nit<-BA$Nit/BA$BA
 
 #put species as columns and rows as blocks for each year
 Sp2<-dcast(Sp,Block+Year~Species,value.var="Count")
@@ -86,7 +96,16 @@ for (i in 1:nrow(Trees2)){
 Sap_Sp<-ddply(Trees2, .(Block,Year,Species),summarize,Count=sum(Status))
 
 #and for analysis of basal area and stem density
-Sap_BA<-ddply(Trees2, .(Block,Year),summarize,SD=sum(Status),BA=sum(BA_sa),BA_F=sum(BA_F),BA_Q=sum(BA_Q),Sp_R=length(unique(Species)))
+Trees2$Light2<-Trees2$Light*Trees2$BA_sa
+Trees2$Moist2<-Trees2$Moist*Trees2$BA_sa
+Trees2$Nit2<-Trees2$Nit*Trees2$BA_sa
+
+Sap_BA<-ddply(Trees2, .(Block,Year),summarize,SD=sum(Status),BA=sum(BA_sa),BA_F=sum(BA_F),BA_Q=sum(BA_Q),Sp_R=length(unique(Species)),
+              Light=sum(Light2,na.rm = T),Moist=sum(Moist2,Light2,na.rm = T),Nit=sum(Nit2,Light2,na.rm = T))
+
+Sap_BA$Light<-Sap_BA$Light/Sap_BA$BA
+Sap_BA$Moist<-Sap_BA$Moist/Sap_BA$BA
+Sap_BA$Nit<-Sap_BA$Nit/Sap_BA$BA
 
 #put species as columns and rows as blocks for each year
 Sap_Sp2<-dcast(Sap_Sp,Block+Year~Species,value.var="Count")
@@ -119,7 +138,8 @@ for (i in 1:length(Blocks)){
 #merge BA sapling change and BA total change
 BA_comb<-merge(BA,Sap_BA,by=c("Block","Year"),all=T)
 head(BA_comb)
-colnames(BA_comb)<-c("Block","Year","SDM","BAM","BAFM","BAQM","SPRM","SDS","BAS","BAFS","BAQS","SPRS")
+colnames(BA_comb)<-c("Block","Year","SDM","BAM","BAFM","BAQM","SPRM","LightM","MoistM","NitM","SDS","BAS","BAFS","BAQS","SPRS",
+                     "LightS","MoistS","NitS")
 
 #now calculate BA and SD change for each year relative to 1964
 #for total SD, total BA, beech BA, and oak BA, for mature and saplings
@@ -149,8 +169,18 @@ for (i in 1:length(Blocks)){
     Block_subset$SDRAWS[v]<-(Block_subset$SDS[v]-Block_subset$SDS[1])
     Block_subset$SPRPERCS[v]<-(Block_subset$SPRS[v]-Block_subset$SPRS[1])/Block_subset$SPRS[1]
     Block_subset$SPRRAWS[v]<-(Block_subset$SPRS[v]-Block_subset$SPRS[1])
-    
-    
+    Block_subset$LightPercM[v]<-(Block_subset$LightM[v]-Block_subset$LightM[1])/Block_subset$LightM[1]
+    Block_subset$LightRawM[v]<-(Block_subset$LightM[v]-Block_subset$LightM[1])
+    Block_subset$MoistPercM[v]<-(Block_subset$MoistM[v]-Block_subset$MoistM[1])/Block_subset$MoistM[1]
+    Block_subset$MoistRawM[v]<-(Block_subset$MoistM[v]-Block_subset$MoistM[1])
+    Block_subset$NitPercM[v]<-(Block_subset$NitM[v]-Block_subset$NitM[1])/Block_subset$NitM[1]
+    Block_subset$NitRawM[v]<-(Block_subset$NitM[v]-Block_subset$NitM[1])
+    Block_subset$LightPercS[v]<-(Block_subset$LightS[v]-Block_subset$LightS[1])/Block_subset$LightS[1]
+    Block_subset$LightRawS[v]<-(Block_subset$LightS[v]-Block_subset$LightS[1])
+    Block_subset$MoistPercS[v]<-(Block_subset$MoistS[v]-Block_subset$MoistS[1])/Block_subset$MoistS[1]
+    Block_subset$MoistRawS[v]<-(Block_subset$MoistS[v]-Block_subset$MoistS[1])
+    Block_subset$NitPercS[v]<-(Block_subset$NitS[v]-Block_subset$NitS[1])/Block_subset$NitS[1]
+    Block_subset$NitRawS[v]<-(Block_subset$NitS[v]-Block_subset$NitS[1])
   }
   BA_change<-rbind(BA_change,Block_subset) 
 }
@@ -179,7 +209,9 @@ Sor_BA3$Transect<-ifelse(Sor_BA3$Block>51,"Unenclosed","Enclosed")
 #add location data to this
 Sor_BA4<-merge(Sor_BA3,Location,by.x="Block",by.y="Plot_number")
 
+head(Sor_BA4)
+
 #save all this as a csv
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
-write.csv(Sor_BA3,"Denny_plots.csv",row.names=F)
+write.csv(Sor_BA4,"Denny_plots.csv",row.names=F)
 
