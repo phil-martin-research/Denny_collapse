@@ -227,3 +227,41 @@ BA_hist+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blan
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("BA_hists.png",width = 8,height = 4,units = "in",dpi = 300)
 
+#model percentage change in beech, oak and beech & oak vs total percentage basal area change
+M1<-lme(BAM~BAFM,random=~1|Block,data=BA)
+M2<-lme(BAM~BAQM,random=~1|Block,data=BA)
+M3<-lme(BAM~BAQM+BAFM,random=~1|Block,data=BA)
+
+grid.arrange(plot(M1),plot(M2),plot(M3),qqnorm(M1),qqnorm(M2),qqnorm(M3),ncol=3)
+
+
+plot(BA$BAM,predict(M1,levels=0))
+points(BA$BAM,predict(M2,levels=0),col="green")
+points(BA$BAM,predict(M3,levels=0),col="red")
+
+#plot this
+keeps2 <- c("Block","BAPERCM","BAFPERCM","BAQPERCM","BAQFPERCM")
+BA2014_3<-BA2014[keeps2]
+BA_melt2<-melt(BA2014_3,id.vars = "Block")
+BA_melt3<-subset(BA_melt2,variable=="BAPERCM")
+BA_melt4<-subset(BA_melt2,variable!="BAPERCM")
+BA_change<-merge(BA_melt3,BA_melt4,by="Block")
+head(BA_change)
+
+
+#now plot this
+tree_names<- list(
+  "BAPERCM"="All basal area",
+  "BAFPERCM"="Beech basal area",
+  "BAQPERCM"="Oak basal area",
+  "BAQFPERCM"="Beech + oak basal area"
+)
+tree_labeller2 <- function(variable,value){
+  return(tree_names[value])
+}
+
+BA_plots<-ggplot(BA_change,aes(x=value.y*100,y=value.x*100))+geom_point()+facet_grid(.~variable.y,labeller=tree_labeller2)+geom_abline()+coord_cartesian(xlim=c(-100,200),ylim=c(-100,200))+ylab("Percentage basal area change for all species")
+BA_plots2<-BA_plots+xlab("Percentage basal area change relative to 1964 for each group")+xlab("Percentage basal area change relative to 1964 for each group")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+BA_plots2+ theme(panel.margin = unit(2, "lines"))
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("BA_species.png",width = 8,height = 4,units = "in",dpi = 300)
