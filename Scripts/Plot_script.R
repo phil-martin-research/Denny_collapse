@@ -155,6 +155,8 @@ for (i in 1:length(Blocks)){
     Block_subset$BAFRAWM[v]<-(Block_subset$BAFM[v]-Block_subset$BAFM[1])
     Block_subset$BAQPERCM[v]<-(Block_subset$BAQM[v]-Block_subset$BAQM[1])/Block_subset$BAQM[1]
     Block_subset$BAQRAWM[v]<-(Block_subset$BAQM[v]-Block_subset$BAQM[1])
+    Block_subset$BAQFPERCM[v]<-((Block_subset$BAQM[v]+Block_subset$BAFM[v])-(Block_subset$BAQM[1]+Block_subset$BAFM[1]))/(Block_subset$BAQM[1]+Block_subset$BAFM[1])
+    Block_subset$BAQFRAWM[v]<-((Block_subset$BAQM[v]+Block_subset$BAFM[v])-(Block_subset$BAQM[1]+Block_subset$BAFM[1]))
     Block_subset$SDPERCM[v]<-(Block_subset$SDM[v]-Block_subset$SDM[1])/Block_subset$SDM[1]
     Block_subset$SDRAWM[v]<-(Block_subset$SDM[v]-Block_subset$SDM[1])
     Block_subset$SPRPERCM[v]<-(Block_subset$SPRM[v]-Block_subset$SPRM[1])/Block_subset$SPRM[1]
@@ -165,6 +167,8 @@ for (i in 1:length(Blocks)){
     Block_subset$BAFRAWS[v]<-(Block_subset$BAFS[v]-Block_subset$BAFS[1])
     Block_subset$BAQPERCS[v]<-(Block_subset$BAQS[v]-Block_subset$BAQS[1])/Block_subset$BAQS[1]
     Block_subset$BAQRAWS[v]<-(Block_subset$BAQS[v]-Block_subset$BAQS[1])
+    Block_subset$BAQFPERCS[v]<-((Block_subset$BAQS[v]+Block_subset$BAFS[v])-(Block_subset$BAQS[1]+Block_subset$BAFS[1]))/(Block_subset$BAQS[1]+Block_subset$BAFS[1])
+    Block_subset$BAQFRAWS[v]<-((Block_subset$BAQS[v]+Block_subset$BAFS[v])-(Block_subset$BAQS[1]+Block_subset$BAFS[1]))
     Block_subset$SDPERCS[v]<-(Block_subset$SDS[v]-Block_subset$SDS[1])/Block_subset$SDS[1]
     Block_subset$SDRAWS[v]<-(Block_subset$SDS[v]-Block_subset$SDS[1])
     Block_subset$SPRPERCS[v]<-(Block_subset$SPRS[v]-Block_subset$SPRS[1])/Block_subset$SPRS[1]
