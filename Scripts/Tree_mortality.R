@@ -18,6 +18,7 @@ library(lme4)
 library(fields)
 library(ROCR)
 library(zoo)
+library(KernSmooth)
 
 #import data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
@@ -30,11 +31,33 @@ head(Location)
 #subset trees to give only those inside plots
 DBH<-subset(DBH,In_out=="In")
 
+DBH$Year<-ifelse(DBH$Year==1996,1999,DBH$Year)
+
 #first some exploratory analysis to look at variation in tree deaths by year
 #subset the data to only include data for the enclosed transect
 DBH<-subset(DBH,Block<52)
 
 ggplot(DBH,aes(x=Easting,y=Northing,colour=as.factor(Status)))+geom_point(shape=1)+facet_wrap(~Year)
+
+head(DBH)
+
+DBH_1964<-subset(DBH,Year==1964&Status==1&DBH>10)
+DBH_1984<-subset(DBH,Year==1984&Status==1&DBH>10)
+DBH_1988<-subset(DBH,Year==1988&Status==1&DBH>10)
+DBH_1999<-subset(DBH,Year==1999&Status==1&DBH>10)
+DBH_2014<-subset(DBH,Year==2014&Status==1&DBH>10)
+
+
+plot(x=NULL,
+     y=NULL,
+     xlim=c(10, 180), 
+     ylim=c(0, 25))
+lines(bkde(DBH_1964$DBH)$x,bkde(DBH_1964$DBH)$y*nrow(DBH_1964))
+lines(bkde(DBH_1984$DBH)$x,bkde(DBH_1984$DBH)$y*nrow(DBH_1984),col="blue")
+lines(bkde(DBH_1988$DBH)$x,bkde(DBH_1988$DBH)$y*nrow(DBH_1988),col="purple")
+lines(bkde(DBH_1999$DBH)$x,bkde(DBH_1999$DBH)$y*nrow(DBH_1999),col="green")
+lines(bkde(DBH_2014$DBH)$x,bkde(DBH_2014$DBH)$y*nrow(DBH_2014),col="red")
+
 
 
 #create loop to give trees that were alive at previous time period
