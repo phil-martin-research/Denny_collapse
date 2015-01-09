@@ -12,6 +12,9 @@ library(reshape2)
 library(lme4)
 library(nlme)
 library(MuMIn)
+library(quantreg)
+library(car)
+
 
 #load in data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
@@ -127,6 +130,7 @@ for (i in 1:length(Blocks)){
   Block_subset<-Block_subset[with(Block_subset, order(Year)), ]
   Block_subset[is.na(Block_subset)]<-0
   Block_subset2<-Block_subset[-c(1:2)]
+  Block_subset2<-Block_subset2[-c(71)]
   Block_subset$Sorensen<-c(1,1-vegdist(Block_subset2)[1:nrow(Block_subset2)-1])
   Sor_similarity<-rbind(Sor_similarity,Block_subset)
 }
@@ -138,7 +142,8 @@ str(Sor_similarity2)
 BA3<-subset(BA,select=c(BAPERCM,Year,Block))
 GF_BA_2<-merge(BA,Sor_similarity2,by=c("Block","Year"))
 GF_BA_3<-subset(GF_BA_2, select=c(BAM,BAPERCM,Sorensen,Year,Block))
-ggplot(GF_BA_3,aes(x=BAPERCM,y=Sorensen))+geom_point()+facet_wrap(~Year)+geom_smooth(se=F,method=glm)
+ggplot(GF_BA_3,aes(x=BAPERCM,y=Sorensen,group=Block,colour=as.factor(Year)))+geom_point()
+
 
 #these plots seem to show a reduction in similarity with increasing basal area loss, but let's do this properly
 #with statistics!
@@ -153,10 +158,19 @@ plot(M0.2)
 #we go with formation of M0.2 becuase AICc is lowest
 #now add fixed terms
 M1<-lmer(plogis(Sorensen)~BAPERCM+(1|Block),data=GF_BA_3)
-plot(M1)#seems ok
-AICc(M0.1,M1)
+plot(M1)#seems a bit shit, need to work out box cox transformation for this
+summary(M1) #random effects are also highly correlated so I will centre them
+GF_BA_3$BAPERCM2<-GF_BA_3$BAPERCM-mean(GF_BA_3$BAPERCM)
+GF_BA_3$Block2<-GF_BA_3$Block-mean(GF_BA_3$Block)
+#try again
+M1.2<-lmer(plogis(Sorensen)~BAPERCM2+(1|Block),data=GF_BA_3)
+plot(M1.2)
+summary(M1.2) 
 
-summary(M1)
-r.squaredGLMM(M1)
+r.squaredGLMM(M1.2)
+
+
+
+
 
 
