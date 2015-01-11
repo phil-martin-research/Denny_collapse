@@ -10,6 +10,7 @@ library(ape)
 library(geoR)
 library(vegan)
 library(reshape2)
+library(MuMIn)
 
 
 #import data
