@@ -42,7 +42,7 @@ colnames(Trees)[12]<-"Sp_name"
 head(Trees)
 #calculate basal area per plot per time period
 #for all species >10cm DBH
-Trees$BA<NULL
+Trees$BA<-NULL
 Trees$BA_Q<-NULL
 Trees$BA_F<-NULL
 for (i in 1:nrow(Trees)){
@@ -201,7 +201,7 @@ head(Sor_BA)
 Sor_BA2<-merge(Sor_similarity_sap,Sor_BA,by=c("Block","Year"),all=T)
 head(Sor_BA2)
 
-Sor_BA3<-subset(Sor_BA2,Year>1964)
+Sor_BA3<-subset(Sor_BA2,Year>=1964)
 str(Sor_BA3)
 colnames(Sor_BA3)[3:23]<-c("AS","BS","CrS","FS","IS","PMS","QS","ScS","TS","SorS","AM","BM","CrM","FM","FrM","IM","PMM","QM","ScM","TM","SorM")
 
