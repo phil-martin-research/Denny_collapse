@@ -30,3 +30,4 @@ keeps <- c("Block","Year","BAM","BAFM","BAQM")
 BA_table<-BA[keeps]
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 write.csv(BA_table,file="BA_table.csv",row.names=F)
+
