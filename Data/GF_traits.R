@@ -26,24 +26,35 @@ GF<-read.csv("GF_ab_nw.csv")
 EF<-ECOFLORA_df
 head(EF)
 
-
 #replace na with zeros in dataframe
 GF[is.na(GF)] <- 0
-
 #remove data from plots 26, 44 and 45 which have incomplete records
 GF<-subset(GF,Block!=26)
 GF<-subset(GF,Block!=44)
 GF<-subset(GF,Block!=45)
 GF[GF==2001]<-199
-
 #produce counts of species per block per year
 GF_melt<-melt(GF,id =c("Block","Year") )
 head(GF_melt)
 
+#now download traits
+#first clean data to get correct species names
+GF_melt2<-subset(GF_melt,variable!="Agrostis.spp.")
+GF_melt2<-subset(GF_melt,variable!="Ground_cover")
+GF_melt2<-subset(GF_melt,variable!="Glyceria sp")
+Other_sp<-gsub("[.]"," ",as.vector(unique(GF_melt$variable)))
+Other_sp<-as.vector(Other_sp)
+Other_sp<-replace(Other_sp,Other_sp=="Taraxacum officinalis agg ","Taraxacum officinalis")
+Other_sp<-replace(Other_sp,Other_sp=="Athyrium filix femina ","Athyrium filix-femina")
+Other_sp<-replace(Other_sp,Other_sp=="Dryopteris filix mas ","Dryopteris filix")
+Other_sp<-replace(Other_sp,Other_sp=="Juncus buffonius","Juncus bufonius")
+Other_sp<-replace(Other_sp,Other_sp=="Montia fontanum","Montia fontana")
+Other_sp<-replace(Other_sp,Other_sp=="Ranunculus sarduous","Ranunculus sardous")
+Other_sp<-replace(Other_sp,Other_sp=="Senecio sylvatica","Senecio sylvaticus")
+Other_sp<-replace(Other_sp,Other_sp=="Taraxacum officinalis","Taraxacum officinale agg")
 
-#however one species is not identified to species level only to genus
-#this is agrostis and as such we averaged accross all species found
-#in the UK
+#however two  species is not identified to species level only to genus
+#and as such we averaged accross all species in the genus found in the UK
 Agrostis<-as.vector(EF$species[grep("Agrostis",EF$species)])
 Trait_Ag<-tr8(Agrostis)
 Trait_Ag<-data.frame(Trait_Ag@results)
@@ -55,22 +66,7 @@ Trait_Gly<-tr8(Glyceria)
 Trait_Gly<-data.frame(Trait_Gly@results)
 
 
-#now download other traits
-#first clean data to get correct species names
-GF_melt<-subset(GF_melt,variable!="Agrostis.spp.")
-GF_melt<-subset(GF_melt,variable!="Ground_cover")
-GF_melt<-subset(GF_melt,variable!="Glyceria sp")
-Other_sp<-gsub("[.]"," ",as.vector(unique(GF_melt$variable)))
-Other_sp<-as.vector(Other_sp)
-Other_sp[Other_sp==]
-Other_sp<-replace(Other_sp,Other_sp=="Taraxacum officinalis agg ","Taraxacum officinalis")
-Other_sp<-replace(Other_sp,Other_sp=="Athyrium filix femina ","Athyrium filix-femina")
-Other_sp<-replace(Other_sp,Other_sp=="Dryopteris filix mas ","Dryopteris filix")
-Other_sp<-replace(Other_sp,Other_sp=="Juncus buffonius","Juncus bufonius")
-Other_sp<-replace(Other_sp,Other_sp=="Montia fontanum","Montia fontana")
-Other_sp<-replace(Other_sp,Other_sp=="Ranunculus sarduous","Ranunculus sardous")
-Other_sp<-replace(Other_sp,Other_sp=="Senecio sylvatica","Senecio sylvaticus")
-Other_sp<-replace(Other_sp,Other_sp=="Taraxacum officinalis","Taraxacum officinale agg")
+
 #now download
 other_traits<-tr8(Other_sp)
 other_traits<-data.frame(other_traits@results)
@@ -100,6 +96,14 @@ str(Gly_means)
 #now substitute in values
 #bind all df first
 All_Sp_traits<-rbind(Trait_Ag,Trait_Gly,other_traits)
+All_Sp_traits$ell_light_uk<-as.numeric(as.character(All_Sp_traits$ell_light_uk))
+All_Sp_traits$ ell_moist_uk<-as.numeric(as.character(All_Sp_traits$ ell_moist_uk))
+All_Sp_traits$ell_N<-as.numeric(as.character(All_Sp_traits$ell_N))
+
+plot(All_Sp_traits$ell_light_uk,All_Sp_traits$ell_N)
+
+str(All_Sp_traits)
+aggregate(All_Sp_traits$ell_light_uk, list(as.factor(All_Sp_traits$species)), mean,na.rm=TRUE)
 
 
 All_Sp_traits<-replace(All_Sp_traits,All_Sp_traits$species=="Taraxacum officinalis","Taraxacum officinalis agg")
