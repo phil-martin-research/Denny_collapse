@@ -72,7 +72,12 @@ Trees$Nit2<-Trees$Nit*Trees$BA
   
 
 #organise data for community analysis
+#for stem density
 Sp<-ddply(Trees, .(Block,Year,Species),summarize,Count=sum(Status))
+#and basal area
+Sp_BA<-ddply(Trees, .(Block,Year,Species),summarize,Sum_BA=sum(BA))
+
+
 #and for analysis of basal area, stem density and speceis richness
 BA<-ddply(Trees, .(Block,Year),summarize,SD=sum(Status),BA=sum(BA),BA_F=sum(BA_F),BA_Q=sum(BA_Q),Sp_R=length(unique(Species)),
           Light=sum(Light2),Moist=sum(Moist2),Nit=sum(Nit2))
@@ -83,6 +88,7 @@ BA$Nit<-BA$Nit/BA$BA
 
 #put species as columns and rows as blocks for each year
 Sp2<-dcast(Sp,Block+Year~Species,value.var="Count")
+Sp_BA2<-dcast(Sp_BA,Block+Year~Species,value.var="Sum_BA")
 
 #do the same for saplings - all species <10cm DBH
 Trees2<-subset(Trees,DBH<10)
@@ -111,6 +117,8 @@ Sap_BA$Nit<-Sap_BA$Nit/Sap_BA$BA
 Sap_Sp2<-dcast(Sap_Sp,Block+Year~Species,value.var="Count")
 
 #now set up loop to carry out similarity analysis comparing each block to itself in 1964
+#first using stem density
+
 Blocks<-unique(Sp2$Block)
 Sor_similarity<-NULL
 for (i in 1:length(Blocks)){
@@ -121,6 +129,20 @@ for (i in 1:length(Blocks)){
   Block_subset$Sorensen<-c(1,1-vegdist(Block_subset2)[1:nrow(Block_subset2)-1])
   Sor_similarity<-rbind(Sor_similarity,Block_subset)
 }
+#next using basal area
+Sp_BA2
+Blocks_BA<-unique(Sp_BA2$Block)
+Sor_similarity_BA<-NULL
+for (i in 1:length(Blocks_BA)){
+  Block_subset<-subset(Sp_BA2,Block==Blocks_BA[i])
+  Block_subset[is.na(Block_subset)]<-0
+  Block_subset2<-Block_subset[-c(1:2)]
+  Block_subset2[is.na(Block_subset2)]<-0
+  Block_subset$Sorensen<-c(1,1-vegdist(Block_subset2)[1:nrow(Block_subset2)-1])
+  Sor_similarity_BA<-rbind(Sor_similarity_BA,Block_subset)
+}
+
+
 
 #now set up loop to carry out similarity analysis for saplings comparing each block to itself in 1964
 Blocks<-unique(Sap_Sp2$Block)
@@ -200,15 +222,17 @@ Sor_BA<-merge(Sor_similarity,BA_change,by=c("Block","Year"),all=T)
 head(Sor_BA)
 Sor_BA2<-merge(Sor_similarity_sap,Sor_BA,by=c("Block","Year"),all=T)
 head(Sor_BA2)
+Sor_BA3<-merge(Sor_similarity_BA,Sor_BA2,by=c("Block","Year"),all=T)
+head(Sor_BA3)
+Sor_BA4<-subset(Sor_BA3,Year>=1964)
+str(Sor_BA4)
+colnames(Sor_BA3)[3:30]<-c("A_BA","B_BA","Cr_BA","F_BA","Fr_BA","I_BA","PM_BA","Q_BA","Sc_BA","T_BA","Sor_BA","AS","BS","CrS","FS","IS","PMS","QS","ScS","TS","SorS","AM","BM","CrM","FM","FrM","IM","PMM","QM","ScM","TM","SorM")
 
-Sor_BA3<-subset(Sor_BA2,Year>=1964)
-str(Sor_BA3)
-colnames(Sor_BA3)[3:23]<-c("AS","BS","CrS","FS","IS","PMS","QS","ScS","TS","SorS","AM","BM","CrM","FM","FrM","IM","PMM","QM","ScM","TM","SorM")
 
 #reclass 1996 plots as 1999 for grouping
-Sor_BA3$Year2<-ifelse(Sor_BA3$Year==1996,1999,Sor_BA3$Year)
+Sor_BA4$Year2<-ifelse(Sor_BA3$Year==1996,1999,Sor_BA3$Year)
 #add column to identify transect
-Sor_BA3$Transect<-ifelse(Sor_BA3$Block>51,"Unenclosed","Enclosed")
+Sor_BA4$Transect<-ifelse(Sor_BA3$Block>51,"Unenclosed","Enclosed")
 
 #add location data to this
 Sor_BA4<-merge(Sor_BA3,Location,by.x="Block",by.y="Plot_number")
