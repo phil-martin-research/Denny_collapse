@@ -59,3 +59,14 @@ Collapse_map2+scale_colour_gradient(low="blue",high="red","Collapse status")+ th
                                                                                          axis.title.y=element_blank())
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("Collapse_map_groups.png",width = 8,height=6,units = "in",dpi=300)
+
+#plot location of plots using continous variable
+theme_set(theme_bw(base_size=12))
+Collapse_map1<-ggplot(Plots,aes(x=Easting,Northing,colour=BAPERCM))+geom_point(shape=15,size=1)+facet_wrap(~Year)
+Collapse_map2<-Collapse_map1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+Collapse_map2+scale_colour_gradient2(low="red",mid="grey",high="blue","Percentage change in Basal area")+ theme(axis.text.x=element_blank(),
+                                                                                    axis.text.y=element_blank(),axis.ticks=element_blank(),
+                                                                                    axis.title.x=element_blank(),
+                                                                                    axis.title.y=element_blank())
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("Collapse_map_continuous.png",width = 8,height=6,units = "in",dpi=300)
