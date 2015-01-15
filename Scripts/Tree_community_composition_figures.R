@@ -3,7 +3,7 @@
 library(ggplot)
 
 #save all this as a csv
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest")
 Plots<-read.csv("Denny_plots.csv")
 
 head(Plots)
