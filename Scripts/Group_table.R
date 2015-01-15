@@ -73,3 +73,39 @@ head(Group_summ3)
 #write this csv 
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 write.csv(Group_summ3,file="Group_table.csv",row.names=F)
+
+#now create a table showing the transitions between one group and another for all blocks
+keeps2<-c("Block","Year","Group","BAPERCM")
+BA_trans<-BA_groups[keeps2]
+head(BA_trans)
+BA_trans<-subset(BA_trans,Year>1964)
+
+#create a loop to class groups as numeric values
+Group_num<-data.frame(max=c(-0.75,-0.50,-0.25,0,3),min=c(-1.00,-0.75,-0.50,-0.25,0),group=c(5,4,3,2,1))
+BA_trans3<-NULL
+for(i in 1:nrow(BA_trans)){
+  BA_trans2<-subset(BA_trans,BAPERCM>Group_num[i,2]&BAPERCM<Group_num[i,1])
+  BA_trans2$Group<-Group_num[i,3]
+  BA_trans3<-rbind(BA_trans2,BA_trans3)
+}
+
+
+#create a loop to produce a column to concatenate changes in status
+Blocks<-unique(BA_trans3$Block)
+Blocks<-sort(Blocks)
+BA_blocks<-NULL
+for (i in 1:nrow(BA_trans3)){
+  BA_block_sub<-subset(BA_trans3,Block==Blocks[i])
+  BA_block_sub$Trans<-NA
+  BA_block_sub$Trans[1]<-paste("1-",BA_block_sub$Group[1],sep ="")
+  for (y in 2:nrow(BA_block_sub)){
+    BA_block_sub$Trans[y]<-paste(BA_block_sub$Group[y-1],"-",BA_block_sub$Group[y],sep ="")
+  }
+BA_blocks<-rbind(BA_block_sub,BA_blocks)
+}
+
+
+#write this csv 
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+write.csv(BA_blocks,file="Transitions_table.csv",row.names=F)
+
