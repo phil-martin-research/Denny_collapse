@@ -13,14 +13,26 @@ Plots<-read.csv("Denny_plots.csv")
 
 head(Plots)
 
-#classify plots by collapse status
+#classify plots by collapse status - collapsed (1) or not (0)
 Plots$Collapse<-NA
 for (i in 1:nrow(Plots)){
   Plots$Collapse[i]<-ifelse(Plots$BAPERCM[i]<=-0.25,1,0)
 }
 
-#change 1996 to 1999
+#classify plots by the degree to which they have collapsed
+#1- stable or increase, 2 - 0-25% decrease, 3 - 25-50% decrease, 
+#4 - 50-75% decrease, 5 75-100% decrease
+Groups<-data.frame(max=c(-0.75,-0.50,-0.25,0,3),min=c(-1.00,-0.75,-0.50,-0.25,0),group=c(5,4,3,2,1))
+Plots$Collapse_group<-NA
+for (i in 1:nrow(Groups)){
+  for (y in 1:nrow(Plots)){
+  Plots$Collapse_group[y]<-ifelse(Plots$BAPERCM[y]<Groups[i,1]&Plots$BAPERCM[y]>Groups[i,2],Groups[i,3],Plots$Collapse_group[y])
+  }
+}
 
+plot(Plots$Collapse_group,Plots$BAPERCM)
+
+#change 1996 to 1999
 for (i in 1:nrow(Plots)){
   Plots$Year[i]<-ifelse(Plots$Year[i]==1996,1999,Plots$Year[i])
 }
@@ -36,3 +48,14 @@ Collapse_map2+scale_colour_manual(values=c("dark green","red"),"Collapse status"
 
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("Collapse_map.png",width = 8,height=6,units = "in",dpi=300)
+
+#plot location of plots grouped by collapse status
+theme_set(theme_bw(base_size=12))
+Collapse_map1<-ggplot(Plots,aes(x=Easting,Northing,colour=Collapse_group))+geom_point(shape=15,size=1)+facet_wrap(~Year)
+Collapse_map2<-Collapse_map1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+Collapse_map2+scale_colour_gradient(low="blue",high="red","Collapse status")+ theme(axis.text.x=element_blank(),
+                                                                                         axis.text.y=element_blank(),axis.ticks=element_blank(),
+                                                                                         axis.title.x=element_blank(),
+                                                                                         axis.title.y=element_blank())
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("Collapse_map_groups.png",width = 8,height=6,units = "in",dpi=300)
