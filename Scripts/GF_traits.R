@@ -94,7 +94,7 @@ All_Sp_traits$ ell_moist_uk<-as.numeric(as.character(All_Sp_traits$ ell_moist_uk
 All_Sp_traits$ell_N<-as.numeric(as.character(All_Sp_traits$ell_N))
 
 #remove rows with ground cover as a species label
-All_Sp_traits2<-subset(All_Sp_traits,species!="ground_cover")
+All_Sp_traits2<-subset(All_Sp_traits,species!="Ground_cover")
 
 #add loop to change names back to those in dataframe
 All_Sp_traits2[]<-lapply(All_Sp_traits2,as.character)
@@ -121,10 +121,25 @@ All_Sp_traits2$ell_N<-as.numeric(All_Sp_traits2$ell_N)
 GF_melt$Light<-NA
 GF_melt$Moist<-NA
 GF_melt$N<-NA
+GF_melt<-subset(GF_melt,variable!="ground_cover")
 
-for (i in 1:nrow(All_Sp_traits2)){
-  GF_melt$Light<-ifelse(GF_melt$variable==All_Sp_traits2$species[i],All_Sp_traits2$ell_light_uk[i],GF_melt$Light)
-  GF_melt$Moist<-ifelse(GF_melt$variable==All_Sp_traits2$species[i],All_Sp_traits2$ell_moist_uk[i],GF_melt$Moist)
-  GF_melt$N<-ifelse(GF_melt$variable==All_Sp_traits2$species[i],All_Sp_traits2$ell_N[i],GF_melt$N)  
+test<-data.frame(sort(levels(GF_melt$variable)),sort(levels(All_Sp_traits2$species)))
+test$same<-NA
+head(test)
+for (i in 1:nrow(test)){
+  test$same<-test[1,1]==test[1,2]
 }
 
+
+for (i in 1:nrow(All_Sp_traits2)){
+  for (y in 1:nrow(GF_melt)){
+  GF_melt$Light[y]<-ifelse(GF_melt$variable[y]==All_Sp_traits2$species[i],All_Sp_traits2$ell_light_uk[i],GF_melt$Light[y])
+  GF_melt$Moist[y]<-ifelse(GF_melt$variable[y]==All_Sp_traits2$species[i],All_Sp_traits2$ell_moist_uk[i],GF_melt$Moist[y])
+  GF_melt$N[y]<-ifelse(GF_melt$variable[y]==All_Sp_traits2$species[i],All_Sp_traits2$ell_N[i],GF_melt$N[y])  
+}
+}
+
+head(GF_melt)
+
+All_Sp_traits2$species[1]
+GF_melt$variable[1]
