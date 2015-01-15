@@ -6,15 +6,6 @@ rm(list=ls(all=TRUE))
 library(ggplot2)
 library(plyr)
 library(reshape2)
-library(ape)
-library(geoR)
-library(vegan)
-library(reshape2)
-library(lme4)
-library(nlme)
-library(MuMIn)
-library(quantreg)
-library(car)
 library(TR8)
 library(Taxonstand)
 
@@ -53,6 +44,8 @@ Other_sp<-replace(Other_sp,Other_sp=="Ranunculus sarduous","Ranunculus sardous")
 Other_sp<-replace(Other_sp,Other_sp=="Senecio sylvatica","Senecio sylvaticus")
 Other_sp<-replace(Other_sp,Other_sp=="Taraxacum officinalis","Taraxacum officinale agg")
 
+
+
 #however two  species is not identified to species level only to genus
 #and as such we averaged accross all species in the genus found in the UK
 Agrostis<-as.vector(EF$species[grep("Agrostis",EF$species)])
@@ -64,8 +57,6 @@ Glyceria<-data.frame(EF$species[grep("Glyceria",EF$species)])
 Glyceria<-as.vector(Glyceria[-(3:4),])
 Trait_Gly<-tr8(Glyceria)
 Trait_Gly<-data.frame(Trait_Gly@results)
-
-
 
 #now download
 other_traits<-tr8(Other_sp)
@@ -82,7 +73,8 @@ Trait_Ag$species<-"Agrostis.spp."
 Trait_Ag$ell_light_uk<-as.numeric(as.character(Trait_Ag$ell_light_uk))
 Trait_Ag$ell_moist_uk<-as.numeric(as.character(Trait_Ag$ell_moist_uk))
 Trait_Ag$ell_N<-as.numeric(as.character(Trait_Ag$ell_N))
-Ag_means<-colMeans(Trait_Ag, na.rm = T, dims = 1)
+Ag_means<-data.frame(mean(Trait_Ag$ell_light_uk,na.rm = T),mean(Trait_Ag$ell_moist_uk,na.rm = T),mean(Trait_Ag$ell_N,na.rm = T),species="Agrostis.spp.")
+colnames(Ag_means)<-c("ell_light_uk","ell_moist_uk","ell_N","species")
 str(Ag_means)
 
 #Glyceria
@@ -90,40 +82,49 @@ Trait_Gly$species<-"Glyceria sp"
 Trait_Gly$ell_light_uk<-as.numeric(as.character(Trait_Gly$ell_light_uk))
 Trait_Gly$ell_moist_uk<-as.numeric(as.character(Trait_Gly$ell_moist_uk))
 Trait_Gly$ell_N<-as.numeric(as.character(Trait_Gly$ell_N))
-Gly_means<-colMeans(Trait_Gly, na.rm = T, dims = 1)
+Gly_means<-data.frame(mean(Trait_Gly$ell_light_uk,na.rm = T),mean(Trait_Gly$ell_moist_uk,na.rm = T),mean(Trait_Gly$ell_N,na.rm = T),species="Glyceria sp")
+colnames(Gly_means)<-c("ell_light_uk","ell_moist_uk","ell_N","species")
 str(Gly_means)
 
 #now substitute in values
 #bind all df first
-All_Sp_traits<-rbind(Trait_Ag,Trait_Gly,other_traits)
+All_Sp_traits<-rbind(Ag_means,Gly_means,other_traits)
 All_Sp_traits$ell_light_uk<-as.numeric(as.character(All_Sp_traits$ell_light_uk))
 All_Sp_traits$ ell_moist_uk<-as.numeric(as.character(All_Sp_traits$ ell_moist_uk))
 All_Sp_traits$ell_N<-as.numeric(as.character(All_Sp_traits$ell_N))
 
-plot(All_Sp_traits$ell_light_uk,All_Sp_traits$ell_N)
+#remove rows with ground cover as a species label
+All_Sp_traits2<-subset(All_Sp_traits,species!="ground_cover")
 
-str(All_Sp_traits)
-aggregate(All_Sp_traits$ell_light_uk, list(as.factor(All_Sp_traits$species)), mean,na.rm=TRUE)
+#add loop to change names back to those in dataframe
+All_Sp_traits2[]<-lapply(All_Sp_traits2,as.character)
 
+for (i in 1:nrow(All_Sp_traits2)){
+  All_Sp_traits2$species[i]<-ifelse(All_Sp_traits2$species[i]=="Taraxacum officinalis","Taraxacum officinalis agg",All_Sp_traits2$species[i])
+  All_Sp_traits2$species[i]<-ifelse(All_Sp_traits2$species[i]=="Athyrium filix-femina","Athyrium filix femina",All_Sp_traits2$species[i])
+  All_Sp_traits2$species[i]<-ifelse(All_Sp_traits2$species[i]=="Dryopteris filix","Dryopteris filix mas",All_Sp_traits2$species[i])
+  All_Sp_traits2$species[i]<-ifelse(All_Sp_traits2$species[i]=="Juncus bufonius","Juncus bufonius",All_Sp_traits2$species[i])
+  All_Sp_traits2$species[i]<-ifelse(All_Sp_traits2$species[i]=="Montia fontana","Montia fontanum",All_Sp_traits2$species[i])
+  All_Sp_traits2$species[i]<-ifelse(All_Sp_traits2$species[i]=="Ranunculus sardous","Ranunculus sarduous",All_Sp_traits2$species[i])
+  All_Sp_traits2$species[i]<-ifelse(All_Sp_traits2$species[i]=="Senecio sylvaticus","Senecio sylvatica",All_Sp_traits2$species[i])
+  All_Sp_traits2$species[i]<-ifelse(All_Sp_traits2$species[i]=="Taraxacum officinalis","Taraxacum officinalis agg",All_Sp_traits2$species[i])
+}
 
-All_Sp_traits<-replace(All_Sp_traits,All_Sp_traits$species=="Taraxacum officinalis","Taraxacum officinalis agg")
-All_Sp_traits<-replace(All_Sp_traits,All_Sp_traits$species=="Athyrium filix-femina","Athyrium filix femina")
-All_Sp_traits<-replace(All_Sp_traits,All_Sp_traits$species=="Dryopteris filix","Dryopteris filix mas")
-All_Sp_traits<-replace(All_Sp_traits,All_Sp_traits$species=="Juncus bufonius","Juncus buffonius")
-All_Sp_traits<-replace(All_Sp_traits,All_Sp_traits$species=="Montia fontana","Montia fontanum")
-All_Sp_traits<-replace(All_Sp_traits,All_Sp_traits$species=="Ranunculus sardous","Ranunculus sarduous")
-All_Sp_traits<-replace(All_Sp_traits,All_Sp_traits$species=="Senecio sylvaticus","Senecio sylvatica")
-All_Sp_traits<-replace(All_Sp_traits,All_Sp_traits$species=="Taraxacum officinale agg","Taraxacum officinalis")
+All_Sp_traits2$species<-gsub(" ",".",All_Sp_traits2$species)
+All_Sp_traits2$species<-as.factor(All_Sp_traits2$species)
+All_Sp_traits2$ell_light_uk<-as.numeric(All_Sp_traits2$ell_light_uk)
+All_Sp_traits2$ell_moist_uk<-as.numeric(All_Sp_traits2$ell_moist_uk)
+All_Sp_traits2$ell_N<-as.numeric(All_Sp_traits2$ell_N)
 
-#
+#now match traits to species in plots
+
 GF_melt$Light<-NA
 GF_melt$Moist<-NA
 GF_melt$N<-NA
 
-
-
-
-
-for (i in 1:nrow(GF_melt)){
-  if GF_melt$variable[i]==
+for (i in 1:nrow(All_Sp_traits2)){
+  GF_melt$Light<-ifelse(GF_melt$variable==All_Sp_traits2$species[i],All_Sp_traits2$ell_light_uk[i],GF_melt$Light)
+  GF_melt$Moist<-ifelse(GF_melt$variable==All_Sp_traits2$species[i],All_Sp_traits2$ell_moist_uk[i],GF_melt$Moist)
+  GF_melt$N<-ifelse(GF_melt$variable==All_Sp_traits2$species[i],All_Sp_traits2$ell_N[i],GF_melt$N)  
 }
+
