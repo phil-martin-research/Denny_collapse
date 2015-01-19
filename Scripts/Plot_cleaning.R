@@ -23,6 +23,10 @@ setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse
 Coord<-read.csv("Transect_coords.csv")
 #data on trees
 Plots<-read.csv("Denny_plots_edit4.csv")
+#remove trees that fall outsie plots
+Plots<-Plots[- grep("out", Plots$Block),]
+
+
 
 #first organise data to give plot level information
 summary(Plots)
