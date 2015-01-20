@@ -77,6 +77,8 @@ colnames(Grass_cover)<-c("Block","Year","Perc_C")
 #calculate changes in grass abundance relative to first survey
 #do this using a loop and calculating the raw percentage difference
 head(Grass_cover)
+Grass_cover<-Grass_cover[with(Grass_cover, order(Year)), ]
+
 Blocks<-unique(Grass_cover$Block)
 Rel_Ab<-NULL
 for (i in 1:length(Blocks)){
@@ -89,16 +91,11 @@ Rel_Ab<-rbind(Rel_Ab,Cov_block)
 BA2<-subset(BA,select=c("Year","Block","BAPERCM","BAM"))
 BA_ab<-merge(Rel_Ab,BA2,by=c("Block","Year"))
 
-#plot changes in abundance vs BA gradient
-ggplot(BA_ab,aes(x=BAPERCM,y=PCC))+geom_point(size=3,shape=1,aes(colour=as.factor(Year)))
-ggplot(BA_ab,aes(x=BAM,y=PCC,group=Block))+geom_point(size=3,shape=1,aes(colour=as.factor(Year)))
-
-ggplot(BA_ab,aes(x=BAM,y=Perc_C))+geom_point(size=3,shape=1,aes(colour=as.factor(Year)))
 
 
-
-#analyse this change in abundance
-#first - grass species
+############################################################
+#analysis of change in grass abundance######################
+############################################################
 Grass_ab<-subset(BA_ab,Year>1964)
 Grass_ab$PCC<-ifelse(Grass_ab$PCC>100,100,Grass_ab$PCC)
 
@@ -123,14 +120,6 @@ AICc(M0.2_G,M1_G,M2_G,M3_G,M4_G)
 plot(Grass_ab$BAPERCM,Grass_ab$PCC)
 points(Grass_ab$BAPERCM,(((plogis(predict(M2_G,re.form=NA)))*200)-4),col="red")
 
-f5 <- rep(1/5,5)
-
-keeps<-c("BAPERCM","PCC")
-Grass_ab2<-Grass_ab[keeps]
-Grass_ab2<-Grass_ab2[with(Grass_ab2, order(BAPERCM)), ]
-y_sym <- filter(Grass_ab2$PCC, f5, sides=1)
-plot(Grass_ab2$BAPERCM,Grass_ab2$PCC)
-lines(Grass_ab2$BAPERCM, y_sym, col="red")
 
 
 ggplot(Grass_ab,aes(x=BAPERCM,y=PCC))+geom_point()+facet_wrap(~Year)+geom_smooth(se=F,method="lm")
