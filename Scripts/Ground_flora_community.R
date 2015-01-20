@@ -113,9 +113,53 @@ plot(M4_G)
 AICc(M0.2_G,M1_G,M2_G,M3_G,M4_G)
 
 plot(Grass_ab$BAPERCM,Grass_ab$PCC)
-points(Grass_ab$BAPERCM,(((plogis(predict(M3_G,re.form=NA)))*200)-4),col="red")
+line(Grass_ab$BAPERCM,(((plogis(predict(M3_G,re.form=NA)))*200)-4),col="red")
 
 
+Grass_ab$pred<-((plogis(predict(M3_G,re.form=NA)))*200)-4
+
+#plot this relationship
+theme_set(theme_bw(base_size=12))
+Grass_plot1<-ggplot(Grass_ab,aes(x=BAPERCM*100,y=PCC,colour=as.factor(Year)))+geom_point(shape=1,size=3)
+Grass_plot2<-Grass_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+Grass_plot3<-Grass_plot2+geom_line(data=Grass_ab,aes(x=BAPERCM*100,y=pred,colour=NULL),size=2)+ylab("Percentage change in grass cover since 1964")+xlab("Percentage change in basal area since 1964")
+Grass_plot3+scale_colour_brewer("Year",palette ="Set1")
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("Grass_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
+
+#######################################################
+#analysis of bracken cover#############################
+#######################################################
+
+Bracken<-subset(GF_melt2,variable=="Pteridium.aquilinum")
+
+#calculate changes in bracken abundance relative to first survey
+#do this using a loop and calculating the raw percentage difference
+head(Grass_cover)
+Grass_cover<-Grass_cover[with(Grass_cover, order(Year)), ]
+
+Blocks<-unique(Bracken$Block)
+Rel_Ab<-NULL
+for (i in 1:length(Blocks)){
+  Cov_block<-subset(Bracken,Block==Blocks[i])  
+  Cov_block$PCC<-Cov_block$value-Cov_block$value[1]
+  Rel_Ab<-rbind(Rel_Ab,Cov_block)
+}
+
+#merge data on abundances to data on BA change
+BA2<-subset(BA,select=c("Year","Block","BAPERCM","BAM"))
+BA_ab<-merge(Rel_Ab,BA2,by=c("Block","Year"))
+Brack_Ab<-BA_ab
+#remove data from 1964
+Brack_Ab<-subset(Brack_Ab,Year>1964)
+
+
+theme_set(theme_bw(base_size=12))
+Brack_plot1<-ggplot(Brack_Ab,aes(x=BAPERCM*100,y=PCC,colour=as.factor(Year)))+geom_point(shape=1,size=3)
+Brack_plot2<-Brack_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+Brack_plot2+scale_colour_brewer("Year",palette ="Set1")+ylab("Percentage change in bracken cover since 1964")+xlab("Percentage change in basal area since 1964")
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("Bracken_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
 
 
 
