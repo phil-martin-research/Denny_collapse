@@ -20,9 +20,7 @@ library(car)
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 BA<-read.csv("Denny_plots.csv")
 GF<-read.csv("GF_ab_nw.csv")
-
-head(GF)
-str(GF)
+Grass<-read.csv("Reclass_grass.csv")
 
 #replace na with zeros in dataframe
 GF[is.na(GF)] <- 0
@@ -31,13 +29,16 @@ GF[is.na(GF)] <- 0
 GF<-subset(GF,Block!=26)
 GF<-subset(GF,Block!=44)
 GF<-subset(GF,Block!=45)
-GF[GF==2001]<-199
+GF[GF==2001]<-1999
+
 
 #produce counts of species per block per year
 GF_melt<-melt(GF,id =c("Block","Year") )
 head(GF_melt)
 #remove rows with NAs
 GF_melt2<-GF_melt[complete.cases(GF_melt),]
+
+#and species richness
 GF_melt3<-subset(GF_melt2,value>0)
 GF_Sp_R<-count(GF_melt3,vars = c("Block","Year"))
 
@@ -82,10 +83,6 @@ Rel_Ab<-rbind(Rel_Ab,Cov_block)
 #merge data on abundances to data on BA change
 BA2<-subset(BA,select=c("Year","Block","BAPERCM","BAM"))
 BA_ab<-merge(Rel_Ab,BA2,by=c("Block","Year"))
-
-#plot abundances of species of against BA gradient
-ggplot(BA_ab,aes(x=BAPERCM,y=value))+geom_point(size=3,shape=1,aes(colour=as.factor(Year)))+facet_wrap(~variable,scales = "free_y")+geom_smooth(method=glm,family="poisson",se=F,size=3,alpha=0.1,aes(colour=NULL))
-ggplot(BA_ab,aes(x=BAM,y=value))+geom_point(size=3,shape=1,aes(colour=as.factor(Year)))+facet_wrap(~variable,scales = "free_y")+geom_smooth(method=glm,family="poisson",se=F,size=3,alpha=0.1,aes(colour=NULL))
 
 #plot changes in abundance vs BA gradient
 ggplot(BA_ab,aes(x=BAPERCM,y=PCC))+geom_point(size=3,shape=1,aes(colour=as.factor(Year)))+facet_wrap(~variable,scales = "free_y")+geom_smooth(method=glm,se=F,size=3,alpha=0.1,aes(colour=NULL))
