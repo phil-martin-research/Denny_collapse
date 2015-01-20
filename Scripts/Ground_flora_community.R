@@ -42,33 +42,42 @@ GF_melt2<-GF_melt[complete.cases(GF_melt),]
 GF_melt3<-subset(GF_melt2,value>0)
 GF_Sp_R<-count(GF_melt3,vars = c("Block","Year"))
 
-
 #####################################################
 # ground flora abundance#############################
 #####################################################
 
-#plot changes in GF species abundances over disturbance gradient
-ggplot(GF_melt2,aes(x=Year,y=value,group=Block))+geom_point()+geom_line()+facet_wrap(~variable)
+#remove the sum of all ground cover
+GF_melt2<-subset(GF_melt2,variable!="Ground_cover")
 
-#subset data to only include species with abundances >10%
-Ab_max<-aggregate(GF_melt2$value,list(GF_melt2$variable),max)
-colnames(Ab_max)<-c("Species","Ab")
-Ab_max2<-subset(Ab_max,Ab>10)
-#run a loop to remove species with abundance <10%
-GF_melt4<-NULL
-for (i in 1:nrow(Ab_max2)){
-  GF_melt3<-GF_melt2[GF_melt2$variable == Ab_max2[i,1], ]
-  GF_melt4<-rbind(GF_melt4,GF_melt3)
+#remove space from species names for Grass table
+Grass$Species<-gsub(" ", "", Grass$Species, fixed = TRUE)
+Grass$Species<-as.factor(Grass$Species)
+Grass$Species2<-as.numeric(Grass$Species)
+
+
+GF_melt2$variable<- factor(GF_melt2$variable, levels=levels(Grass$Species))
+GF_melt2$variable2<-as.numeric(GF_melt2$variable)
+
+#add column to identify species as grass - this needs fixing
+GF_melt2$Grass<-"No"
+for (i in 1:nrow(Grass)){
+  for (y in 1:nrow(GF_melt2)){
+    GF_melt2$Grass[y]<-ifelse(GF_melt2$variable[y]==Grass$Species[i],as.character(Grass$FF[i]),as.character(GF_melt2$Grass[y]))
+  }
 }
 
-unique(GF_melt2$variable)
+GF_melt2$Grass<-as.factor(GF_melt2$Grass)
 
-#plot changes in GF species abundances over time
-theme_set(theme_bw(base_size=12))
-Ab_time1<-ggplot(GF_melt4,aes(x=Year,y=value,group=Block))+geom_point(alpha=0.2)+geom_line(alpha=0.2)+facet_wrap(~variable)+geom_smooth(aes(group=NULL),se=F,method=lm,size=3)
-Ab_time1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+ylab("Species richness of ground flora")
+#subset to only include grass species
 
-#calculate changes in species abundance relative to first survey
+#sum the cover of grassy species
+Grass_cover<-aggregate(Grass_species$value, list(Grass_species$Block,Grass_species$Year), sum)
+colnames(Grass_cover)<-c("Block","Year","Perc_C")
+
+#plot changes in grass abundance over disturbance gradient
+ggplot(Grass_cover,aes(x=Year,y=Perc_C,group=Block))+geom_point()+geom_line()
+
+#calculate changes in grass abundance relative to first survey
 #do this using a loop and calculating the log response ratio log(x)-log(y)
 head(GF_melt4)
 GF_melt5<-GF_melt4[,-c(2,4)]
