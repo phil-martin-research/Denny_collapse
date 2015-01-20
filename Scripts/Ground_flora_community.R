@@ -15,7 +15,6 @@ library(MuMIn)
 library(quantreg)
 library(car)
 
-
 #load in data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 BA<-read.csv("Denny_plots.csv")
@@ -30,7 +29,6 @@ GF<-subset(GF,Block!=26)
 GF<-subset(GF,Block!=44)
 GF<-subset(GF,Block!=45)
 GF[GF==2001]<-1999
-
 
 #produce counts of species per block per year
 GF_melt<-melt(GF,id =c("Block","Year") )
@@ -91,14 +89,11 @@ Rel_Ab<-rbind(Rel_Ab,Cov_block)
 BA2<-subset(BA,select=c("Year","Block","BAPERCM","BAM"))
 BA_ab<-merge(Rel_Ab,BA2,by=c("Block","Year"))
 
-
-
 ############################################################
 #analysis of change in grass abundance######################
 ############################################################
 Grass_ab<-subset(BA_ab,Year>1964)
 Grass_ab$PCC<-ifelse(Grass_ab$PCC>100,100,Grass_ab$PCC)
-
 
 #null model
 M0.1_G<-lmer(qlogis((PCC+4)/200)~1+(1|Block),data=Grass_ab)
@@ -118,79 +113,9 @@ plot(M4_G)
 AICc(M0.2_G,M1_G,M2_G,M3_G,M4_G)
 
 plot(Grass_ab$BAPERCM,Grass_ab$PCC)
-points(Grass_ab$BAPERCM,(((plogis(predict(M2_G,re.form=NA)))*200)-4),col="red")
+points(Grass_ab$BAPERCM,(((plogis(predict(M3_G,re.form=NA)))*200)-4),col="red")
 
 
-
-ggplot(Grass_ab,aes(x=BAPERCM,y=PCC))+geom_point()+facet_wrap(~Year)+geom_smooth(se=F,method="lm")
-
-#next juncus effusus
-JU_ab<-subset(BA_ab,variable=="Juncus.effusus")
-#null model
-M0.1_JU<-lmer(qlogis((PCC+60)/200)~1+(1|Block),data=JU_ab)
-M0.2_JU<-lmer(qlogis((PCC+60)/200)~1+(Block|Year),data=JU_ab)
-AICc(M0.1_JU,M0.2_JU)
-
-M1_JU<-lmer(qlogis((PCC+60)/200)~BAPERCM+(Block|Year),data=JU_ab)
-plot(M1_JU)
-AICc(M0.2_JU,M1_JU)
-r.squaredGLMM(M1_JU)
-
-plot(JU_ab$BAPERCM,JU_ab$PCC)
-points(JU_ab$BAPERCM,(((plogis(predict(M1_JU,re.form=NA)))*200)-60),col="red")
-
-#next Pteridium aquilinum
-PA_ab<-subset(BA_ab,variable=="Pteridium.aquilinum")
-#null model
-M0.1_PA<-lmer(qlogis((PCC+60)/200)~1+(1|Block),data=PA_ab)
-M0.2_PA<-lmer(qlogis((PCC+60)/200)~1+(Block|Year),data=PA_ab)
-AICc(M0.1_PA,M0.2_PA)
-
-M1_PA<-lmer(qlogis((PCC+60)/200)~BAPERCM+(1|Block),data=PA_ab)
-M2_PA<-lmer(qlogis((PCC+60)/200)~BAPERCM+I(BAPERCM^2)+(1|Block),data=PA_ab)
-
-plot(M1_PA)
-plot(M2_PA)
-AICc(M0.1_PA,M1_PA,M2_PA)
-#the null model is best in this case
-
-
-#now ground cover
-GC_ab<-subset(BA_ab,variable=="Ground_cover")
-#null model
-M0.1_GC<-lmer(qlogis((PCC+60)/200)~1+(1|Block),data=GC_ab)
-M0.2_GC<-lmer(qlogis((PCC+60)/200)~1+(Block|Year),data=GC_ab)
-AICc(M0.1_GC,M0.2_GC)
-
-M1_GC<-lmer(qlogis((PCC+60)/200)~BAPERCM+(1|Block),data=GC_ab)
-M2_GC<-lmer(qlogis((PCC+60)/200)~BAPERCM+I(BAPERCM^2)+(1|Block),data=GC_ab)
-
-r.squaredGLMM(M1_GC)
-
-plot(M1_GC)
-plot(M2_GC)
-AICc(M0.1_GC,M1_GC,M2_GC)
-
-plot(GC_ab$BAPERCM,GC_ab$PCC)
-points(GC_ab$BAPERCM,(((plogis(predict(M1_GC,re.form=NA)))*200)-60),col="red")
-
-plot(seq(1,100),-log(seq(1,100)))
-
-
-#now produce a summary figure of all of this
-#first produce a dataframe with predictions from all the best models along with species names
-BA_PERC1<-data.frame(BAPERCM=seq(min(BA_ab$BAPERCM),max(BA_ab$BAPERCM),length.out = 200))
-BA_PERC2<-data.frame(BAPERCM=BA_PERC1$BAPERCM+1)
-Ag.pred<-data.frame(BAPERCM=BA_PERC1$BAPERCM,PCC=(((plogis(predict(M2_Ag,newdata=BA_PERC1,re.form=NA)))*200)-60),variable="Agrostis.spp.")
-Gc.pred<-data.frame(BAPERCM=BA_PERC1$BAPERCM,PCC=(((plogis(predict(M1_GC,newdata=BA_PERC1,re.form=NA)))*200)-60),variable="Ground_cover")
-JU.pred<-data.frame(BAPERCM=BA_PERC1$BAPERCM,PCC=(((plogis(predict(M1_JU,newdata=BA_PERC1,re.form=NA)))*200)-60),variable="Juncus.effusus")
-All_ab_pred<-rbind(Ag.pred,Gc.pred,JU.pred)
-
-BA_AB1<-ggplot(BA_ab,aes(x=BAPERCM,y=PCC,colour=as.factor(Year)))+geom_point(shape=1,size=3)+facet_wrap(~variable,scales = "free_y")
-BA_AB2<-BA_AB1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+ylab("Change in percentage cover since 1964")+xlab("Percentage change in mature tree basal area since 1964")
-BA_AB2+geom_line(data=All_ab_pred,aes(colour=NULL),size=2,alpha=0.8)+scale_colour_discrete(name="Year of measurements")
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
-ggsave("GF_Ab_change.png",width = 8,height=6,units = "in",dpi=300)
 
 
 
