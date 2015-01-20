@@ -69,23 +69,19 @@ for (i in 1:nrow(Grass)){
 GF_melt2$Grass<-as.factor(GF_melt2$Grass)
 
 #subset to only include grass species
-
+Grass_species<-subset(GF_melt2,Grass=="Grass")
 #sum the cover of grassy species
 Grass_cover<-aggregate(Grass_species$value, list(Grass_species$Block,Grass_species$Year), sum)
 colnames(Grass_cover)<-c("Block","Year","Perc_C")
 
-#plot changes in grass abundance over disturbance gradient
-ggplot(Grass_cover,aes(x=Year,y=Perc_C,group=Block))+geom_point()+geom_line()
-
 #calculate changes in grass abundance relative to first survey
-#do this using a loop and calculating the log response ratio log(x)-log(y)
-head(GF_melt4)
-GF_melt5<-GF_melt4[,-c(2,4)]
-Species<-unique(GF_melt5)
+#do this using a loop and calculating the raw percentage difference
+head(Grass_cover)
+Blocks<-unique(Grass_cover$Block)
 Rel_Ab<-NULL
-for (i in 1:nrow(Species)){
-Cov_block<-subset(GF_melt4,variable==Species[i,2]&Block==Species[i,1])  
-Cov_block$PCC<-Cov_block$value-Cov_block$value[1]
+for (i in 1:length(Blocks)){
+Cov_block<-subset(Grass_cover,Block==Blocks[i])  
+Cov_block$PCC<-Cov_block$Perc_C-Cov_block$Perc_C[1]
 Rel_Ab<-rbind(Rel_Ab,Cov_block)
 }
 
@@ -94,31 +90,50 @@ BA2<-subset(BA,select=c("Year","Block","BAPERCM","BAM"))
 BA_ab<-merge(Rel_Ab,BA2,by=c("Block","Year"))
 
 #plot changes in abundance vs BA gradient
-ggplot(BA_ab,aes(x=BAPERCM,y=PCC))+geom_point(size=3,shape=1,aes(colour=as.factor(Year)))+facet_wrap(~variable,scales = "free_y")+geom_smooth(method=glm,se=F,size=3,alpha=0.1,aes(colour=NULL))
-ggplot(BA_ab,aes(x=BAM,y=PCC))+geom_point(size=3,shape=1,aes(colour=as.factor(Year)))+facet_wrap(~variable,scales = "free_y")+geom_smooth(method=glm,se=F,size=3,alpha=0.1,aes(colour=NULL))
+ggplot(BA_ab,aes(x=BAPERCM,y=PCC))+geom_point(size=3,shape=1,aes(colour=as.factor(Year)))
+ggplot(BA_ab,aes(x=BAM,y=PCC,group=Block))+geom_point(size=3,shape=1,aes(colour=as.factor(Year)))
+
+ggplot(BA_ab,aes(x=BAM,y=Perc_C))+geom_point(size=3,shape=1,aes(colour=as.factor(Year)))
+
 
 
 #analyse this change in abundance
-#first - agrostis spp.
-Ag_ab<-subset(BA_ab,variable=="Agrostis.spp.")
+#first - grass species
+Grass_ab<-subset(BA_ab,Year>1964)
+Grass_ab$PCC<-ifelse(Grass_ab$PCC>100,100,Grass_ab$PCC)
+
 
 #null model
-M0.1_Ag<-lmer(qlogis((PCC+60)/200)~1+(1|Block),data=Ag_ab)
-M0.2_Ag<-lmer(qlogis((PCC+60)/200)~1+(Block|Year),data=Ag_ab)
+M0.1_G<-lmer(qlogis((PCC+4)/200)~1+(1|Block),data=Grass_ab)
+M0.2_G<-lmer(qlogis((PCC+4)/200)~1+(Block|Year),data=Grass_ab)
+AICc(M0.1_G,M0.2_G)#the more simple model seems fine so we go with that
 
-M1_Ag<-lmer(qlogis((PCC+60)/200)~BAPERCM+(1|Block),data=Ag_ab)
-M2_Ag<-lmer(qlogis((PCC+60)/200)~BAPERCM+I(BAPERCM^2)+(1|Block),data=Ag_ab)
-M3_Ag<-lmer(qlogis((PCC+60)/200)~BAPERCM+I(BAPERCM^2)+I(BAPERCM^3)+(1|Block),data=Ag_ab)
-M4_Ag<-lmer(qlogis((PCC+60)/200)~log(BAPERCM+1)+(1|Block),data=Ag_ab)
-plot(M1_Ag)
-plot(M2_Ag)
-AICc(M0.1_Ag,M1_Ag,M2_Ag,M3_Ag,M4_Ag)
-
-plot(Ag_ab$BAPERCM,Ag_ab$PCC)
-points(Ag_ab$BAPERCM,(((plogis(predict(M1_Ag,re.form=NA)))*200)-60),col="red")
+M1_G<-lmer(qlogis((PCC+4)/200)~BAPERCM+(Block|Year),data=Grass_ab)
+M2_G<-lmer(qlogis((PCC+4)/200)~BAPERCM+I(BAPERCM^2)+(Block|Year),data=Grass_ab)
+M3_G<-lmer(qlogis((PCC+4)/200)~BAPERCM+I(BAPERCM^2)+I(BAPERCM^3)+(Block|Year),data=Grass_ab)
+M4_G<-lmer(qlogis((PCC+4)/200)~log(BAPERCM+1)+(Block|Year),data=Grass_ab)
+plot(M1_G)
+plot(M2_G)
+plot(M3_G)
+plot(M4_G)
 
 
-ggplot(Ag_ab,aes(x=BAPERCM,y=PCC))+geom_point()+facet_wrap(~Year)+geom_smooth(se=F)
+AICc(M0.2_G,M1_G,M2_G,M3_G,M4_G)
+
+plot(Grass_ab$BAPERCM,Grass_ab$PCC)
+points(Grass_ab$BAPERCM,(((plogis(predict(M2_G,re.form=NA)))*200)-4),col="red")
+
+f5 <- rep(1/5,5)
+
+keeps<-c("BAPERCM","PCC")
+Grass_ab2<-Grass_ab[keeps]
+Grass_ab2<-Grass_ab2[with(Grass_ab2, order(BAPERCM)), ]
+y_sym <- filter(Grass_ab2$PCC, f5, sides=1)
+plot(Grass_ab2$BAPERCM,Grass_ab2$PCC)
+lines(Grass_ab2$BAPERCM, y_sym, col="red")
+
+
+ggplot(Grass_ab,aes(x=BAPERCM,y=PCC))+geom_point()+facet_wrap(~Year)+geom_smooth(se=F,method="lm")
 
 #next juncus effusus
 JU_ab<-subset(BA_ab,variable=="Juncus.effusus")
