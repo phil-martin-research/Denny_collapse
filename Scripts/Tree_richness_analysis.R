@@ -1,4 +1,4 @@
-#script to calculate changes in ctree species richness in Denny wood over time
+#script to calculate changes in tree species richness in Denny wood over time
 
 rm(list=ls(all=TRUE))
 

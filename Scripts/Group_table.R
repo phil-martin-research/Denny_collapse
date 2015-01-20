@@ -74,6 +74,10 @@ head(Group_summ3)
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 write.csv(Group_summ3,file="Group_table.csv",row.names=F)
 
+###########################################################################
+#transitions table#########################################################
+###########################################################################
+
 #now create a table showing the transitions between one group and another for all blocks
 keeps2<-c("Block","Year","Group","BAPERCM")
 BA_trans<-BA_groups[keeps2]

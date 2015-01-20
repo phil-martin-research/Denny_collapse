@@ -78,7 +78,7 @@ Sp<-ddply(Trees, .(Block,Year,Species),summarize,Count=sum(Status))
 Sp_BA<-ddply(Trees, .(Block,Year,Species),summarize,Sum_BA=sum(BA))
 
 
-#and for analysis of basal area, stem density and speceis richness
+#and for analysis of basal area, stem density and species richness
 BA<-ddply(Trees, .(Block,Year),summarize,SD=sum(Status),BA=sum(BA),BA_F=sum(BA_F),BA_Q=sum(BA_Q),Sp_R=length(unique(Species)),
           Light=sum(Light2),Moist=sum(Moist2),Nit=sum(Nit2))
 
@@ -226,7 +226,7 @@ Sor_BA3<-merge(Sor_similarity_BA,Sor_BA2,by=c("Block","Year"),all=T)
 head(Sor_BA3)
 Sor_BA4<-subset(Sor_BA3,Year>=1964)
 str(Sor_BA4)
-colnames(Sor_BA3)[3:30]<-c("A_BA","B_BA","Cr_BA","F_BA","Fr_BA","I_BA","PM_BA","Q_BA","Sc_BA","T_BA","Sor_BA","AS","BS","CrS","FS","IS","PMS","QS","ScS","TS","SorS","AM","BM","CrM","FM","FrM","IM","PMM","QM","ScM","TM","SorM")
+colnames(Sor_BA3)[3:34]<-c("A_BA","B_BA","Cr_BA","F_BA","Fr_BA","I_BA","PM_BA","Q_BA","Sc_BA","T_BA","Sor_BA","AS","BS","CrS","FS","IS","PMS","QS","ScS","TS","SorS","AM","BM","CrM","FM","FrM","IM","PMM","QM","ScM","TM","SorM")
 
 
 #reclass 1996 plots as 1999 for grouping
@@ -242,3 +242,29 @@ head(Sor_BA4)
 #save all this as a csv
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 write.csv(Sor_BA4,"Denny_plots.csv",row.names=F)
+
+#create a subset of this containing just data on the collapse gradient
+keeps1<-c("Block","Year","BAM","BAPERCM")
+BA_grad<-Sor_BA4[keeps1]
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
+write.csv(BA_grad,"BA_gradient.csv",row.names=F)
+
+#create a subset of this containing just data on the collapse gradient and mature tree basal area
+keeps2<-c("Block","Year","BAM","BAPERCM","A_BA","B_BA","Cr_BA","F_BA","Fr_BA","I_BA","PM_BA","Q_BA","Sc_BA","T_BA")
+BA_ab<-Sor_BA4[keeps2]
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
+write.csv(BA_ab,"BA_tree_ab.csv",row.names=F)
+
+#create a subset of this containing just data on the collapse gradient and mature tree traits
+keeps3<-c("Block","Year","BAM","BAPERCM","LightM","MoistM","NitM","LightPercM","MoistPercM","NitPercM")
+BA_traits<-Sor_BA4[keeps3]
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
+write.csv(BA_traits,"BA_tree_traits.csv",row.names=F)
+
+#create a subset of this containing just data on the collapse gradient and mature tree community
+keeps3<-c("Block","Year","BAM","BAPERCM","Sor_BA","SorM","SPRM")
+BA_comm<-Sor_BA4[keeps3]
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
+write.csv(BA_comm,"BA_tree_comm.csv",row.names=F)
+
+
