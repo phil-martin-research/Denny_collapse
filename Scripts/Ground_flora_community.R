@@ -60,6 +60,7 @@ for (i in 1:nrow(Ab_max2)){
   GF_melt4<-rbind(GF_melt4,GF_melt3)
 }
 
+unique(GF_melt2$variable)
 
 #plot changes in GF species abundances over time
 theme_set(theme_bw(base_size=12))
