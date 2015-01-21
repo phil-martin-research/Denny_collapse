@@ -10,12 +10,14 @@ library(reshape2)
 library(gridExtra)
 library(TR8)
 library(Taxonstand)
+library(vegan)
 
 #load in data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 BA<-read.csv("BA_gradient.csv")
 GF<-read.csv("GF_ab_nw.csv")
 Grass<-read.csv("Reclass_grass.csv")
+Traits<-read.csv("Reclass_traits.csv")
 
 #replace na with zeros in dataframe
 GF[is.na(GF)] <- 0
@@ -124,6 +126,13 @@ BA_Comm<-merge(BA_SP_R,Sor_similarity2,by=c("Block","Year"))
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 write.csv(BA_Comm,"BA_GF.csv",row.names=F)
 
+#######################################################################
+#add data on traits####################################################
+######################################################################
+
+GF_melt$variable2<-gsub("."," ",GF_melt$variable)
+
+
 #downoad local ecoflora db
 EF<-ECOFLORA_df
 head(EF)
@@ -167,6 +176,8 @@ row.names(other_traits)<-NULL
 #now merge trait and species data
 #first for data where only genus data were available
 #produce a mean of this and substitute it in for the values
+
+All_Sp_traits2$species<-gsub(" ",".",All_Sp_traits2$species)
 
 #Agrostis
 Trait_Ag$species<-"Agrostis.spp."
