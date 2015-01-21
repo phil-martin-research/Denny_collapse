@@ -218,29 +218,29 @@ All_Sp_traits2$ell_N<-as.numeric(All_Sp_traits2$ell_N)
 
 
 #now match traits to species in plots
-GF_melt$Light<-NA
-GF_melt$Moist<-NA
-GF_melt$N<-NA
-GF_melt<-subset(GF_melt,variable!="ground_cover")
-
-test<-data.frame(sort(levels(GF_melt$variable)),sort(levels(All_Sp_traits2$species)))
-test$same<-NA
-head(test)
-for (i in 1:nrow(test)){
-  test$same<-test[1,1]==test[1,2]
-}
-
 
 #make sure species levels are the same
 GF_melt$variable <- factor(GF_melt$variable, levels=levels(All_Sp_traits2$species))
 
-for (i in 1:nrow(All_Sp_traits2)){
-  for (y in 1:nrow(GF_melt)){
-    GF_melt$Light[y]<-ifelse(GF_melt$variable[y]==All_Sp_traits2$species[i],All_Sp_traits2$ell_light_uk[i],GF_melt$Light[y])
-    GF_melt$Moist[y]<-ifelse(GF_melt$variable[y]==All_Sp_traits2$species[i],All_Sp_traits2$ell_moist_uk[i],GF_melt$Moist[y])
-    GF_melt$N[y]<-ifelse(GF_melt$variable[y]==All_Sp_traits2$species[i],All_Sp_traits2$ell_N[i],GF_melt$N[y])  
-  }
-}
+?merge
 
-head(GF_melt)
+GF_melt2<-merge(GF_melt,All_Sp_traits2,by.x="variable",by.y="species")
+
+GF_melt3<-GF_melt2[rownames(unique(GF_melt2[,1:3])),]
+
+head(GF_melt3)
+
+#now multiply trait value by abundance of species
+GF_melt3$Light<-GF_melt3$ell_light_uk*GF_melt3$value
+GF_melt3$Moist<-GF_melt3$ell_moist_uk*GF_melt3$value
+GF_melt3$N<-GF_melt3$ell_N*GF_melt3$value
+
+#now sum all these values for each block by year and divide by total cover in block
+Comm_means<-NULL
+Block_year<-unique(GF_melt[,1:2])
+for (i in 1:nrow(Block_year)){
+  Comm_sub<-subset(GF_melt3,Block==Block_year$Block[1])
+  Comm_sub<-subset(Comm_sub,Year==Block_year$Year[1])
+  
+}
 
