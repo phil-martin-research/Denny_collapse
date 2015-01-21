@@ -46,7 +46,7 @@ Other_sp<-replace(Other_sp,Other_sp=="Taraxacum officinalis","Taraxacum officina
 
 
 
-#however two  species is not identified to species level only to genus
+#however two  species are not identified to species level only to genus
 #and as such we averaged accross all species in the genus found in the UK
 Agrostis<-as.vector(EF$species[grep("Agrostis",EF$species)])
 Trait_Ag<-tr8(Agrostis)
@@ -123,13 +123,9 @@ GF_melt$Moist<-NA
 GF_melt$N<-NA
 GF_melt<-subset(GF_melt,variable!="ground_cover")
 
-test<-data.frame(sort(levels(GF_melt$variable)),sort(levels(All_Sp_traits2$species)))
-test$same<-NA
-head(test)
-for (i in 1:nrow(test)){
-  test$same<-test[1,1]==test[1,2]
-}
 
+#make sure species levels are the same
+GF_melt$variable <- factor(GF_melt$variable, levels=levels(All_Sp_traits2$species))
 
 for (i in 1:nrow(All_Sp_traits2)){
   for (y in 1:nrow(GF_melt)){
