@@ -13,8 +13,7 @@ setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse
 BA<-read.csv("Denny_plots.csv")
 
 #calculate Tanner index the mean of Sorensen weighted by BA and SD
-BA$Tanner<-(BA$Sorensen_BA+BA$Sorensen.SD)/2
-
+BA$Tanner<-(BA$Sor_BA+BA$SorM)/2
 
 #load functions needed for work
 std <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
@@ -34,7 +33,7 @@ head(BA_groups)
 #now do calculations of means for year and group
 #first drop the colums I don't need
 #I want to keep BA, species richness,sorenson, etc
-keeps<-c("Year","Group","BAM","BAPERCM","SDM","Sorensen_BA","Sorensen.SD","Tanner","SPRM","LightM","NitM","MoistM")
+keeps<-c("Year","Group","BAM","BAPERCM","SDM","Sor_BA","SorM","Tanner","SPRM","LightM","NitM","MoistM")
 BA_groups2<-BA_groups[keeps]
 df_melt <- melt(BA_groups2, id = c("Year", "Group")) # then melt by year and group
 df_melt$Year[df_melt$Year==1999]<-1996#change 1999 to 1996 becuase only one transect was surveyed in this period
@@ -87,29 +86,49 @@ BA_trans<-subset(BA_trans,Year>1964)
 #create a loop to class groups as numeric values
 Group_num<-data.frame(max=c(-0.75,-0.50,-0.25,0,3),min=c(-1.00,-0.75,-0.50,-0.25,0),group=c(5,4,3,2,1))
 BA_trans3<-NULL
-for(i in 1:nrow(BA_trans)){
+for(i in 1:nrow(Group_num)){
   BA_trans2<-subset(BA_trans,BAPERCM>Group_num[i,2]&BAPERCM<Group_num[i,1])
   BA_trans2$Group<-Group_num[i,3]
   BA_trans3<-rbind(BA_trans2,BA_trans3)
 }
 
+#for the sake of this work group together years 1999 and 1996 into 1999
+
+BA_trans3$Year<-ifelse(BA_trans3$Year==1996,1999,BA_trans3$Year)
 
 #create a loop to produce a column to concatenate changes in status
 Blocks<-unique(BA_trans3$Block)
 Blocks<-sort(Blocks)
+BA_trans3<-BA_trans3[with(BA_trans3, order(Year,Block)), ]
 BA_blocks<-NULL
-for (i in 1:nrow(BA_trans3)){
+for (i in 1:length(Blocks)){
   BA_block_sub<-subset(BA_trans3,Block==Blocks[i])
   BA_block_sub$Trans<-NA
   BA_block_sub$Trans[1]<-paste("1-",BA_block_sub$Group[1],sep ="")
   for (y in 2:nrow(BA_block_sub)){
+    BA_block_sub$Time1[1]<-1
+    BA_block_sub$Time1[y]<-ifelse(is.na(BA_block_sub$Group[y-1]),BA_block_sub$Time1[y-1],BA_block_sub$Group[y-1])
     BA_block_sub$Trans[y]<-paste(BA_block_sub$Group[y-1],"-",BA_block_sub$Group[y],sep ="")
   }
 BA_blocks<-rbind(BA_block_sub,BA_blocks)
 }
 
+BA_blocks<-BA_blocks[with(BA_blocks, order(Year,Block)), ]
+
+
 
 #write this csv 
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 write.csv(BA_blocks,file="Transitions_table.csv",row.names=F)
+
+#create matrices for group transitions
+Transition_matrix<-count(BA_blocks,vars=c("Trans","Year","Time1","Group"))
+
+Transition_matrix[with(Transition_matrix, order(Year, Trans)), ]
+
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+write.csv(Transition_matrix,file="Transition_matrix.csv",row.names=F)
+
+
+
 
