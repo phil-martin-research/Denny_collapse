@@ -130,36 +130,52 @@ write.csv(BA_Comm,"BA_GF.csv",row.names=F)
 #add data on traits####################################################
 ######################################################################
 
-GF_melt$variable2<-gsub("."," ",GF_melt$variable)
+GF_melt$variable2<-gsub("\\."," ",GF_melt$variable)
 
 #remove rows with ground cover as a species label
 GF_melt<-subset(GF_melt,variable!="Ground_cover")
 
-
 #now match traits to species in plots
 
 #make sure species levels are the same
-GF_melt$variable <- factor(GF_melt$variable, levels=levels(All_Sp_traits2$species))
+head(Traits)
 
-?merge
+GF_melt$variable2<-factor(GF_melt$variable2, levels=levels(Traits$Name))
 
-GF_melt2<-merge(GF_melt,All_Sp_traits2,by.x="variable",by.y="species")
+
+GF_melt2<-merge(GF_melt,Traits,by.x="variable2",by.y="Name")
 
 GF_melt3<-GF_melt2[rownames(unique(GF_melt2[,1:3])),]
 
 head(GF_melt3)
 
 #now multiply trait value by abundance of species
-GF_melt3$Light<-GF_melt3$ell_light_uk*GF_melt3$value
-GF_melt3$Moist<-GF_melt3$ell_moist_uk*GF_melt3$value
-GF_melt3$N<-GF_melt3$ell_N*GF_melt3$value
+GF_melt3$Light<-GF_melt3$L*GF_melt3$value
+GF_melt3$Moist<-GF_melt3$F*GF_melt3$value
+GF_melt3$Nit<-GF_melt3$N*GF_melt3$value
+GF_melt3$Hab_B<-GF_melt3$Hab_breadth*GF_melt3$value
+
 
 #now sum all these values for each block by year and divide by total cover in block
 Comm_means<-NULL
 Block_year<-unique(GF_melt[,1:2])
 for (i in 1:nrow(Block_year)){
-  Comm_sub<-subset(GF_melt3,Block==Block_year$Block[1])
-  Comm_sub<-subset(Comm_sub,Year==Block_year$Year[1])
-  
+  Comm_sub<-subset(GF_melt3,Block==Block_year$Block[2])
+  Comm_sub<-subset(Comm_sub,Year==Block_year$Year[2])
+  head(Comm_sub)
+  Comm_sub_means<-data.frame(unique(Comm_sub[c("Block", "Year")]))
+  if sum(Comm_sub$Value,na.rm = T)==0 
+  Comm_sub_means$Cover<-0
+  Comm_sub_means$Hab_B<-0
+  Comm_sub_means$Moist<-0
+  Comm_sub_means$Nit<-0
+  Comm_sub_means$Light<-0
+  else
+    Comm_sub_means$Cover<-sum(Comm_sub$Cover)
+    Comm_sub_means$Hab_B<-sum(Comm_sub$Hab_B)/sum(Comm_sub$Cover)
+    Comm_sub_means$Moist<-sum(Comm_sub$Moist)/sum(Comm_sub$Cover)
+    Comm_sub_means$Nit<-sum(Comm_sub$Nit)/sum(Comm_sub$Cover)
+    Comm_sub_means$Light<-sum(Comm_sub$Light)/sum(Comm_sub$Cover)
+
 }
 
