@@ -47,11 +47,24 @@ for (i in 1:nrow(Trees_M_Size)){
 Trees_BA_Size<-ddply(Trees_M_Size,.(Block,Year,Size_Class),summarise,T_BA=sum(BA))
 Trees_BA_Size2<-merge(Trees_BA_Size,BA,by=c("Block","Year"))
 
+#now loop through to calculate proportional change in basal area for each size class
+Trees_unique<-unique(Trees_BA_Size2[,c("Block","Size_Class")])
+Trees_BA_Size3<-NULL
+for (i in 1:nrow(Trees_unique)){
+  Trees_sub<-subset(Trees_BA_Size2,Block==Trees_unique$Block[i])
+  Trees_sub<-subset(Trees_sub,Size_Class==Trees_unique$Size_Class[i])
+  Trees_sub<-Trees_sub[with(Trees_sub, order(Year)), ]
+  Trees_sub$BA_Change<-Trees_sub$T_BA/Trees_sub$T_BA[1]
+  Trees_BA_Size3<-rbind(Trees_BA_Size3,Trees_sub)
+}
+
 
 #now plot the relationship between basal area for each size class and time
-ggplot(Trees_BA_Size2,aes(x=Year,y=T_BA,group=Block))+geom_point()+facet_wrap(~Size_Class,scales = "free_y")+geom_line()+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
+ggplot(Trees_BA_Size3,aes(x=Year,y=T_BA,group=Block))+geom_point()+facet_wrap(~Size_Class,scales = "free_y")+geom_line()+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
+ggplot(Trees_BA_Size3,aes(x=Year,y=BA_Change,group=Block))+geom_point()+facet_wrap(~Size_Class,scales = "free_y")+geom_line()+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
 
 
 #and now over the gradient
-ggplot(Trees_BA_Size2,aes(x=BAPERCM,y=T_BA,group=Block))+geom_point()+facet_wrap(~Size_Class,scales = "free_y")+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
+ggplot(Trees_BA_Size3,aes(x=BAPERCM,y=T_BA,group=Block))+geom_point()+facet_wrap(~Size_Class,scales = "free_y")+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
+ggplot(Trees_BA_Size3,aes(x=BAPERCM,y=BA_Change,group=Block))+geom_point()+facet_wrap(~Size_Class,scales = "free_y")+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
 
