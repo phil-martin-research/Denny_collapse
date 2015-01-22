@@ -75,4 +75,3 @@ Group_summ4<-Group_summ3[keeps]
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 write.csv(Group_summ4,file="Group_table_GF.csv",row.names=F)
 
-
