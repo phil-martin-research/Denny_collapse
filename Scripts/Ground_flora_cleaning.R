@@ -160,22 +160,15 @@ GF_melt3$Hab_B<-GF_melt3$Hab_breadth*GF_melt3$value
 Comm_means<-NULL
 Block_year<-unique(GF_melt[,1:2])
 for (i in 1:nrow(Block_year)){
-  Comm_sub<-subset(GF_melt3,Block==Block_year$Block[2])
-  Comm_sub<-subset(Comm_sub,Year==Block_year$Year[2])
-  head(Comm_sub)
+  Comm_sub<-subset(GF_melt3,Block==Block_year$Block[i])
+  Comm_sub<-subset(Comm_sub,Year==Block_year$Year[i])
   Comm_sub_means<-data.frame(unique(Comm_sub[c("Block", "Year")]))
-  if sum(Comm_sub$Value,na.rm = T)==0 
-  Comm_sub_means$Cover<-0
-  Comm_sub_means$Hab_B<-0
-  Comm_sub_means$Moist<-0
-  Comm_sub_means$Nit<-0
-  Comm_sub_means$Light<-0
-  else
-    Comm_sub_means$Cover<-sum(Comm_sub$Cover)
-    Comm_sub_means$Hab_B<-sum(Comm_sub$Hab_B)/sum(Comm_sub$Cover)
-    Comm_sub_means$Moist<-sum(Comm_sub$Moist)/sum(Comm_sub$Cover)
-    Comm_sub_means$Nit<-sum(Comm_sub$Nit)/sum(Comm_sub$Cover)
-    Comm_sub_means$Light<-sum(Comm_sub$Light)/sum(Comm_sub$Cover)
-
+  Sum_cov<-sum(Comm_sub$value,na.rm = T)
+  Comm_sub_means$Cover<-ifelse(Sum_cov==0,0,Sum_cov)
+  Comm_sub_means$Hab_B<-ifelse(Sum_cov==0,0,sum(Comm_sub$Hab_B,na.rm = T)/Sum_cov)
+  Comm_sub_means$Moist<-ifelse(Sum_cov==0,0,sum(Comm_sub$Moist,na.rm = T)/Sum_cov)
+  Comm_sub_means$Nit<-ifelse(Sum_cov==0,0,sum(Comm_sub$Nit,na.rm = T)/Sum_cov)
+  Comm_sub_means$Light<-ifelse(Sum_cov==0,0,sum(Comm_sub$Light,na.rm = T)/Sum_cov)
+  Comm_means<-rbind(Comm_sub_means,Comm_means)
 }
 
