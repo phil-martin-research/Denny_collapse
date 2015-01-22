@@ -188,15 +188,18 @@ for (i in 1:length(Blocks)){
 BA_Comm_traits<-merge(BA_Comm,Comm_means2,by=c("Block","Year"),all=T)
 
 
+
 #classify into groups
 Groups<-data.frame(max=c(-0.75,-0.50,-0.25,0,3),min=c(-1.00,-0.75,-0.50,-0.25,0),group=c(5,4,3,2,1))
 head(BA_Comm_traits)
 BA_Comm_traits_groups<-NULL
 for(i in 1:nrow(Groups)){
-  BA_Comm_traits2<-subset(BA_Comm_traits,BA_Comm_traits$BAPERCM>Groups[i,2]&BA_Comm_traits$BAPERCM<Groups[i,1])
+  BA_Comm_traits2<-subset(BA_Comm_traits,BA_Comm_traits$BAPERCM>Groups[i,2]&BA_Comm_traits$BAPERCM<=Groups[i,1])
   BA_Comm_traits2$Group<-Groups[i,3]
   BA_Comm_traits_groups<-rbind(BA_Comm_traits_groups,BA_Comm_traits2)
 }
+
+summary(BA_Comm_traits_groups)
 
 colnames(BA_Comm_traits_groups)<-c("Block","Year","Perc_Cov","Perc_Cov_change","BAPERCM","BAM","Sp_R","Sp_R_Ch","Sorensen","Cover","Hab_B","Moist","Nit","Light","Hab_B_Change","Moist_change","Nit_Change","Light_Change","Coll_Group")
 
