@@ -131,6 +131,7 @@ write.csv(BA_Comm,"BA_GF.csv",row.names=F)
 ######################################################################
 
 GF_melt$variable2<-gsub("\\."," ",GF_melt$variable)
+GF_melt$variable2<-ifelse(GF_melt$variable2=="Agrostis spp ","Agrostis spp",GF_melt$variable2)
 
 #remove rows with ground cover as a species label
 GF_melt<-subset(GF_melt,variable!="Ground_cover")
@@ -138,30 +139,26 @@ GF_melt<-subset(GF_melt,variable!="Ground_cover")
 #now match traits to species in plots
 
 #make sure species levels are the same
-head(Traits)
 
 GF_melt$variable2<-factor(GF_melt$variable2, levels=levels(Traits$Name))
 
+GF_melt_Traits<-merge(GF_melt,Traits,by.x="variable2",by.y="Name")
 
-GF_melt2<-merge(GF_melt,Traits,by.x="variable2",by.y="Name")
-
-GF_melt3<-GF_melt2[rownames(unique(GF_melt2[,1:3])),]
-
-head(GF_melt3)
+GF_melt_Traits2<-GF_melt_Traits[rownames(unique(GF_melt_Traits[,1:3])),]
 
 #now multiply trait value by abundance of species
-GF_melt3$Light<-GF_melt3$L*GF_melt3$value
-GF_melt3$Moist<-GF_melt3$F*GF_melt3$value
-GF_melt3$Nit<-GF_melt3$N*GF_melt3$value
-GF_melt3$Hab_B<-GF_melt3$Hab_breadth*GF_melt3$value
+GF_melt_Traits2$Light<-GF_melt_Traits2$L*GF_melt_Traits2$value
+GF_melt_Traits2$Moist<-GF_melt_Traits2$F*GF_melt_Traits2$value
+GF_melt_Traits2$Nit<-GF_melt_Traits2$N*GF_melt_Traits2$value
+GF_melt_Traits2$Hab_B<-GF_melt_Traits2$Hab_breadth*GF_melt_Traits2$value
 
 
 #now sum all these values for each block by year and divide by total cover in block
 Comm_means<-NULL
-Block_year<-unique(GF_melt[,1:2])
+Block_year<-unique(GF_melt_Traits2[,2:3])
 Block_year<-Block_year[with(Block_year, order(Year)), ]
 for (i in 1:nrow(Block_year)){
-  Comm_sub<-subset(GF_melt3,Block==Block_year$Block[141])
+  Comm_sub<-subset(GF_melt_Traits2,Block==Block_year$Block[i])
   Comm_sub<-subset(Comm_sub,Year==Block_year$Year[i])
   Comm_sub_means<-data.frame(unique(Comm_sub[c("Block", "Year")]))
   Sum_cov<-sum(Comm_sub$value,na.rm = T)
@@ -190,7 +187,6 @@ for (i in 1:length(Blocks)){
 #now bring together all of this data into one table
 BA_Comm_traits<-merge(BA_Comm,Comm_means2,by=c("Block","Year"),all=T)
 
-head(BA_Comm_traits)
 
 #classify into groups
 Groups<-data.frame(max=c(-0.75,-0.50,-0.25,0,3),min=c(-1.00,-0.75,-0.50,-0.25,0),group=c(5,4,3,2,1))
@@ -201,7 +197,6 @@ for(i in 1:nrow(Groups)){
   BA_Comm_traits2$Group<-Groups[i,3]
   BA_Comm_traits_groups<-rbind(BA_Comm_traits_groups,BA_Comm_traits2)
 }
-head(BA_Comm_traits_groups)
 
 colnames(BA_Comm_traits_groups)<-c("Block","Year","Perc_Cov","Perc_Cov_change","BAPERCM","BAM","Sp_R","Sp_R_Ch","Sorensen","Cover","Hab_B","Moist","Nit","Light","Hab_B_Change","Moist_change","Nit_Change","Light_Change","Coll_Group")
 
