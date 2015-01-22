@@ -119,8 +119,8 @@ for (i in 1:length(Blocks)){
 Sor_similarity2<-Sor_similarity[c("Block","Year","Sorensen")]
 
 #merge these data together
-BA_SP_R<-merge(BA_ab,Rel_SpR,by=c("Block","Year"))
-BA_Comm<-merge(BA_SP_R,Sor_similarity2,by=c("Block","Year"))
+BA_SP_R<-merge(BA_ab,Rel_SpR,by=c("Block","Year"),all=T)
+BA_Comm<-merge(BA_SP_R,Sor_similarity2,by=c("Block","Year"),all=T)
 
 #save this ouput
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
@@ -159,8 +159,9 @@ GF_melt3$Hab_B<-GF_melt3$Hab_breadth*GF_melt3$value
 #now sum all these values for each block by year and divide by total cover in block
 Comm_means<-NULL
 Block_year<-unique(GF_melt[,1:2])
+Block_year<-Block_year[with(Block_year, order(Year)), ]
 for (i in 1:nrow(Block_year)){
-  Comm_sub<-subset(GF_melt3,Block==Block_year$Block[i])
+  Comm_sub<-subset(GF_melt3,Block==Block_year$Block[141])
   Comm_sub<-subset(Comm_sub,Year==Block_year$Year[i])
   Comm_sub_means<-data.frame(unique(Comm_sub[c("Block", "Year")]))
   Sum_cov<-sum(Comm_sub$value,na.rm = T)
@@ -171,4 +172,40 @@ for (i in 1:nrow(Block_year)){
   Comm_sub_means$Light<-ifelse(Sum_cov==0,0,sum(Comm_sub$Light,na.rm = T)/Sum_cov)
   Comm_means<-rbind(Comm_sub_means,Comm_means)
 }
+
+#now compare community mean trait values to what they were in 1964
+Blocks<-unique(Comm_means$Block)
+Comm_means2<-NULL
+for (i in 1:length(Blocks)){
+  Block_subset<-subset(Comm_means,Block==Blocks[i])
+  Block_subset<-Block_subset[with(Block_subset, order(Year)), ]
+  Block_subset[is.na(Block_subset)]<-0
+  Block_subset$Hab_B_Change<-Block_subset$Hab_B-Block_subset$Hab_B[1]
+  Block_subset$Moist_Change<-Block_subset$Moist-Block_subset$Moist[1]
+  Block_subset$Nit_Change<-Block_subset$Nit-Block_subset$Nit[1]
+  Block_subset$Light_Change<-Block_subset$Light-Block_subset$Light[1]
+  Comm_means2<-rbind(Comm_means2,Block_subset)
+}
+
+#now bring together all of this data into one table
+BA_Comm_traits<-merge(BA_Comm,Comm_means2,by=c("Block","Year"),all=T)
+
+head(BA_Comm_traits)
+
+#classify into groups
+Groups<-data.frame(max=c(-0.75,-0.50,-0.25,0,3),min=c(-1.00,-0.75,-0.50,-0.25,0),group=c(5,4,3,2,1))
+head(BA_Comm_traits)
+BA_Comm_traits_groups<-NULL
+for(i in 1:nrow(Groups)){
+  BA_Comm_traits2<-subset(BA_Comm_traits,BA_Comm_traits$BAPERCM>Groups[i,2]&BA_Comm_traits$BAPERCM<Groups[i,1])
+  BA_Comm_traits2$Group<-Groups[i,3]
+  BA_Comm_traits_groups<-rbind(BA_Comm_traits_groups,BA_Comm_traits2)
+}
+head(BA_Comm_traits_groups)
+
+colnames(BA_Comm_traits_groups)<-c("Block","Year","Perc_Cov","Perc_Cov_change","BAPERCM","BAM","Sp_R","Sp_R_Ch","Sorensen","Cover","Hab_B","Moist","Nit","Light","Hab_B_Change","Moist_change","Nit_Change","Light_Change","Coll_Group")
+
+#save this ouput
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
+write.csv(BA_Comm_traits_groups,"BA_GF_ALL.csv",row.names=F)
 
