@@ -1,4 +1,4 @@
-#script to produce table with plots classified by collapse status for each year
+#script to produce table with plots classified by collapse status for each year for ground flora
 
 rm(list=ls(all=TRUE))
 
@@ -10,47 +10,34 @@ library(gridExtra)
 
 #load in data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
-BA<-read.csv("Denny_plots.csv")
+GF<-read.csv("BA_GF_ALL.csv")
 
-#calculate Tanner index the mean of Sorensen weighted by BA and SD
-BA$Tanner<-(BA$Sorensen_BA+BA$Sorensen.SD)/2
-
+head(GF)
 
 #load functions needed for work
 std <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 
-#classify into groups
-Groups<-data.frame(max=c(-0.75,-0.50,-0.25,0,3),min=c(-1.00,-0.75,-0.50,-0.25,0),group=c("100-75%","75-50%","50-25%","25-0%","0-216% increase"))
-head(BA)
-BA_groups<-NULL
-for(i in 1:nrow(Groups)){
-  BA2<-subset(BA,BA$BAPERCM>Groups[i,2]&BA$BAPERCM<Groups[i,1])
-  BA2$Group<-Groups[i,3]
-  BA_groups<-rbind(BA_groups,BA2)
-}
-
-head(BA_groups)
-
 #now do calculations of means for year and group
 #first drop the colums I don't need
 #I want to keep BA, species richness,sorenson, etc
-keeps<-c("Year","Group","BAM","BAPERCM","SDM","Sorensen_BA","Sorensen.SD","Tanner","SPRM","LightM","NitM","MoistM")
-BA_groups2<-BA_groups[keeps]
-df_melt <- melt(BA_groups2, id = c("Year", "Group")) # then melt by year and group
+keeps<-c("Year","Coll_Group","BAM","BAPERCM","Perc_Cov","Sorensen","Sp_R","Light","Nit","Moist")
+GF2<-GF[keeps]
+df_melt <- melt(GF2, id = c("Year", "Coll_Group")) # then melt by year and group
 df_melt$Year[df_melt$Year==1999]<-1996#change 1999 to 1996 becuase only one transect was surveyed in this period
 
 #and then cast the data to produce means, SE and the number of plots in each group
-Groups2_Mean<-dcast(df_melt, Year + Group ~ variable, mean,na.rm = TRUE)
-Groups2_SE<-dcast(df_melt, Year + Group ~ variable, std)
+Groups2_Mean<-dcast(df_melt, Year + Coll_Group ~ variable, mean,na.rm = TRUE)
+Groups2_SE<-dcast(df_melt, Year + Coll_Group ~ variable, std)
 #number of blocks in each group
-Count_plots<-count(BA_groups,c("Year","Group"))
+Count_plots<-count(GF2,c("Year","Coll_Group"))
 #merge the dataframes together
-Group_summ<-merge(Groups2_Mean,Groups2_SE,by=c("Year","Group"))
-Group_summ2<-merge(Group_summ,Count_plots,by=c("Year","Group"))
+Group_summ<-merge(Groups2_Mean,Groups2_SE,by=c("Year","Coll_Group"))
+Group_summ2<-merge(Group_summ,Count_plots,by=c("Year","Coll_Group"))
 
 #rename columns
-colnames(Group_summ2)<-c("Year","Group","BA_mean","BA_perc_mean","SD_mean","Sorensen_BA_mean","Sorensen_SD_mean","Tanner_mean","Spr_Mean","Light_mean","Nit_mean","Moist_mean",
-                         "BA_SE","BA_perc_SE","SD_SE","Sorensen_BA_SE","Sorensen_SD_SE","Tanner_SE","Spr_SE","Light_SE","Nit_SE","Moist_SE","no_of_plots")
+head(Group_summ2)
+colnames(Group_summ2)<-c("Year","Group","BA_mean","BA_perc_mean","Grass_Cover_mean","Sorensen_mean","Spr_Mean","Light_mean","Nit_mean","Moist_mean",
+                         "BA_SE","BA_perc_SE","Grass_Cover_SE","Sorensen_SE","Spr_SE","Light_SE","Nit_SE","Moist_SE","no_of_plots")
 #run a loop to work out the proportion of plots in each period found in each group 
 Plot_count<-data.frame(tapply(Group_summ2$no_of_plots,Group_summ2$Year,sum))
 colnames(Plot_count)<-"Count"
@@ -70,46 +57,22 @@ is.num <- sapply(Group_summ3, is.numeric)
 Group_summ3[is.num] <- lapply(Group_summ3[is.num], round, 2)
 head(Group_summ3)
 
+#now create columns with means and standard errors in brackets
+
+Group_summ3$BA<-paste(Group_summ3$BA_mean,"(",Group_summ3$BA_SE,")",sep="")
+Group_summ3$BA_perc<-paste(Group_summ3$BA_perc_mean,"(",Group_summ3$BA_perc_SE,")",sep="")
+Group_summ3$Grass_Cover<-paste(Group_summ3$Grass_Cover_mean,"(",Group_summ3$Grass_Cover_SE,")",sep="")
+Group_summ3$Sorensen<-paste(Group_summ3$Sorensen_mean,"(",Group_summ3$Sorensen_SE,")",sep="")
+Group_summ3$Spr<-paste(Group_summ3$Spr_mean,"(",Group_summ3$Spr_SE,")",sep="")
+Group_summ3$Light<-paste(Group_summ3$Light_mean,"(",Group_summ3$Light_SE,")",sep="")
+Group_summ3$Nit<-paste(Group_summ3$Nit_mean,"(",Group_summ3$Nit_SE,")",sep="")
+Group_summ3$Moist<-paste(Group_summ3$Moist_mean,"(",Group_summ3$Moist_SE,")",sep="")
+
+
+keeps<-c("Year","Group","no_of_plots","Prop_plot","BA","BA_perc","Grass_Cover","Sorensen","Spr","Light","Nit","Moist")
+Group_summ4<-Group_summ3[keeps]
 #write this csv 
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
-write.csv(Group_summ3,file="Group_table.csv",row.names=F)
+write.csv(Group_summ4,file="Group_table_GF.csv",row.names=F)
 
-###########################################################################
-#transitions table#########################################################
-###########################################################################
-
-#now create a table showing the transitions between one group and another for all blocks
-keeps2<-c("Block","Year","Group","BAPERCM")
-BA_trans<-BA_groups[keeps2]
-head(BA_trans)
-BA_trans<-subset(BA_trans,Year>1964)
-
-#create a loop to class groups as numeric values
-Group_num<-data.frame(max=c(-0.75,-0.50,-0.25,0,3),min=c(-1.00,-0.75,-0.50,-0.25,0),group=c(5,4,3,2,1))
-BA_trans3<-NULL
-for(i in 1:nrow(BA_trans)){
-  BA_trans2<-subset(BA_trans,BAPERCM>Group_num[i,2]&BAPERCM<Group_num[i,1])
-  BA_trans2$Group<-Group_num[i,3]
-  BA_trans3<-rbind(BA_trans2,BA_trans3)
-}
-
-
-#create a loop to produce a column to concatenate changes in status
-Blocks<-unique(BA_trans3$Block)
-Blocks<-sort(Blocks)
-BA_blocks<-NULL
-for (i in 1:nrow(BA_trans3)){
-  BA_block_sub<-subset(BA_trans3,Block==Blocks[i])
-  BA_block_sub$Trans<-NA
-  BA_block_sub$Trans[1]<-paste("1-",BA_block_sub$Group[1],sep ="")
-  for (y in 2:nrow(BA_block_sub)){
-    BA_block_sub$Trans[y]<-paste(BA_block_sub$Group[y-1],"-",BA_block_sub$Group[y],sep ="")
-  }
-BA_blocks<-rbind(BA_block_sub,BA_blocks)
-}
-
-
-#write this csv 
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
-write.csv(BA_blocks,file="Transitions_table.csv",row.names=F)
 
