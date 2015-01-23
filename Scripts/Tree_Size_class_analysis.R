@@ -21,13 +21,14 @@ Trees_M<-subset(Trees_live,DBH>10)
 #create a loop to classify trees into different size classes into quantiles
 quantile(Trees_M$DBH)
 Trees_M_Size<-NULL
-Size_class<-data.frame(min=c(0,15,25,45,150))
+Size_class<-data.frame(min=c(10,15,25,45,150))
 for (i in 2:nrow(Size_class)){
   Tree_subset<-subset(Trees_M,DBH>Size_class$min[i-1])
   Tree_subset<-subset(Tree_subset,DBH<=Size_class$min[i])
   Tree_subset$Size_Class<-Size_class$min[i]
   Trees_M_Size<-rbind(Tree_subset,Trees_M_Size)
 }
+
 
 #create count of stems in certain size classes
 Stem_density_Size<-count(Trees_M_Size,var=c("Block","Year","Size_Class"))
@@ -54,17 +55,24 @@ for (i in 1:nrow(Trees_unique)){
   Trees_sub<-subset(Trees_BA_Size2,Block==Trees_unique$Block[i])
   Trees_sub<-subset(Trees_sub,Size_Class==Trees_unique$Size_Class[i])
   Trees_sub<-Trees_sub[with(Trees_sub, order(Year)), ]
-  Trees_sub$BA_Change<-Trees_sub$T_BA/Trees_sub$T_BA[1]
+  Trees_sub$BA_Change<-(Trees_sub$T_BA-Trees_sub$T_BA[1])/Trees_sub$T_BA[1]
   Trees_BA_Size3<-rbind(Trees_BA_Size3,Trees_sub)
 }
 
-
 #now plot the relationship between basal area for each size class and time
-ggplot(Trees_BA_Size3,aes(x=Year,y=T_BA,group=Block))+geom_point()+facet_wrap(~Size_Class,scales = "free_y")+geom_line()+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
+ggplot(Trees_BA_Size3,aes(x=Year,y=T_BA,group=Block))+geom_point()+facet_wrap(~Size_Class)+geom_line()+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
 ggplot(Trees_BA_Size3,aes(x=Year,y=BA_Change,group=Block))+geom_point()+facet_wrap(~Size_Class,scales = "free_y")+geom_line()+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
 
 
-#and now over the gradient
-ggplot(Trees_BA_Size3,aes(x=BAPERCM,y=T_BA,group=Block))+geom_point()+facet_wrap(~Size_Class,scales = "free_y")+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
-ggplot(Trees_BA_Size3,aes(x=BAPERCM,y=BA_Change,group=Block))+geom_point()+facet_wrap(~Size_Class,scales = "free_y")+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
+#subset to remove blocks from 1964
+Trees_BA_Size4<-subset(Trees_BA_Size3,Year>1964)
+Trees_BA_Size4<-subset(Trees_BA_Size4,BAPERCM<1)
 
+
+#and now over the gradient
+theme_set(theme_bw(base_size=12))
+Size_class_plot<-ggplot(Trees_BA_Size4,aes(x=BAPERCM*100,y=BA_Change*100,group=Block))+geom_point()+facet_wrap(~Size_Class,scales = "free_y")+geom_smooth(se=F,colour="blue",size=2,alpha=0.2,method="lm",aes(group=NULL))
+Size_class_plot2<-Size_class_plot+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+Size_class_plot2+xlab("Total basal area percentage change since 1964")+ylab("Basal area percentage change since 1964 for tree size class")
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("Collapse_Size_class_gradient.png",width = 8,height=6,units = "in",dpi=300)
