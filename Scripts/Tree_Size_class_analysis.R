@@ -128,15 +128,15 @@ points(Trees_BA_Size_45$BAPERCM,predict(M0_45,re.form = NA),col="red")
 #next for trees <150cm
 Trees_BA_Size_150<-subset(Trees_BA_Size4,Size_Class>45)
 M0_150<-lmer(BA_Change~1+(1|Block),data=Trees_BA_Size_150)
-plot(M0_45)
-M1_45<-lmer(BA_Change~BAPERCM+(1|Block),data=Trees_BA_Size_45)
-plot(M1_45)
-r.squaredGLMM(M1_45)
-AICc(M0_45,M1_45)
-#null model is better
+plot(M0_150)
+M1_150<-lmer(BA_Change~BAPERCM+(1|Block),data=Trees_BA_Size_150)
+plot(M1_150)
+r.squaredGLMM(M1_150)
+AICc(M0_150,M1_150)
+#model 1 is better
 #now plot this
-plot(Trees_BA_Size_45$BAPERCM,Trees_BA_Size_45$BA_Change)
-points(Trees_BA_Size_45$BAPERCM,predict(M0_45,re.form = NA),col="red")
+plot(Trees_BA_Size_150$BAPERCM,Trees_BA_Size_150$BA_Change)
+points(Trees_BA_Size_150$BAPERCM,predict(M1_150,re.form = NA),col="red")
 
 
 
