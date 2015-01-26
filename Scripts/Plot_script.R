@@ -244,25 +244,25 @@ setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse
 write.csv(Sor_BA4,"Denny_plots.csv",row.names=F)
 
 #create a subset of this containing just data on the collapse gradient
-keeps1<-c("Block","Year","BAM","BAPERCM")
+keeps1<-c("Block","Year","BAM","BAPERCM","Northing","Easting")
 BA_grad<-Sor_BA4[keeps1]
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 write.csv(BA_grad,"BA_gradient.csv",row.names=F)
 
 #create a subset of this containing just data on the collapse gradient and mature tree basal area
-keeps2<-c("Block","Year","BAM","BAPERCM","A_BA","B_BA","Cr_BA","F_BA","Fr_BA","I_BA","PM_BA","Q_BA","Sc_BA","T_BA")
+keeps2<-c("Block","Year","BAM","BAPERCM","A_BA","B_BA","Cr_BA","F_BA","Fr_BA","I_BA","PM_BA","Q_BA","Sc_BA","T_BA","Northing","Easting")
 BA_ab<-Sor_BA4[keeps2]
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 write.csv(BA_ab,"BA_tree_ab.csv",row.names=F)
 
 #create a subset of this containing just data on the collapse gradient and mature tree traits
-keeps3<-c("Block","Year","BAM","BAPERCM","LightM","MoistM","NitM","LightPercM","MoistPercM","NitPercM")
+keeps3<-c("Block","Year","BAM","BAPERCM","LightM","MoistM","NitM","LightPercM","MoistPercM","NitPercM","Northing","Easting")
 BA_traits<-Sor_BA4[keeps3]
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 write.csv(BA_traits,"BA_tree_traits.csv",row.names=F)
 
 #create a subset of this containing just data on the collapse gradient and mature tree community
-keeps3<-c("Block","Year","BAM","BAPERCM","Sor_BA","SorM","SPRM")
+keeps3<-c("Block","Year","BAM","BAPERCM","Sor_BA","SorM","SPRM","Northing","Easting")
 BA_comm<-Sor_BA4[keeps3]
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 write.csv(BA_comm,"BA_tree_comm.csv",row.names=F)
