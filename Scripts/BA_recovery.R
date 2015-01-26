@@ -44,9 +44,9 @@ for (i in 1:length(Block_unique)){
 }
 
 
-head(Plots3)
+head(Plots2)
 
-ggplot(Plots3,aes(x=Coll_Sever,y=BAPERCM,group=Block))+geom_point()+geom_line()+facet_wrap(~Block)
+ggplot(Plots2,aes(x=Coll_Sever,y=BAPERCM,group=Block))+geom_point()
 
 
 #now subset to give plots post decline
@@ -64,7 +64,7 @@ AICc(M0.1,M0.2)
 #go with M0.1 random effects
 M1<-lmer(BAPERCM~Time_Coll*Coll_Sever+(1|Block),data=Plots3)
 M2<-lmer(BAPERCM~Time_Coll+Coll_Sever+(1|Block),data=Plots3)
-M3<-lmer(BAPERCM~Time_Coll+(1|Block),data=Plots3)
+M3<-lmer(BAPERCM~Time_Coll+(1|Block)+(1|Coll_Sever),data=Plots3)
 M4<-lmer(BAPERCM~Coll_Sever+(1|Block),data=Plots3)
 
 AICc(M1,M2,M3,M4)
@@ -73,4 +73,20 @@ plot(Plots3$Coll_Sever,Plots3$BAPERCM)
 points(Plots3$Coll_Sever,predict(M2,re.form = NA),col="red")
 abline(a=0,b=1)
 plot(Plots3$Time_Coll,Plots3$BAPERCM)
-points(Plots3$Time_Coll,predict(M2,re.form = NA),col="red")
+points(Plots3$Time_Coll,predict(M3,re.form = NA),col="red")
+
+#plot change in BA relative to intial change in BA
+Recovery_plot<-ggplot(Plots3,aes(x=Coll_Sever*100,y=BAPERCM*100,colour=as.factor(Year)))+geom_point()+geom_abline(lty=2)+geom_hline(y=0,lty=3)
+Recovery_plot2<-Recovery_plot+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+Recovery_plot2+scale_colour_discrete("Year")+ylab("Basal area percentage change relative to 1964")+xlab("Initial percentage change in basal area relative to 1964")
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("Collapse_recovery.png",width = 8,height=6,units = "in",dpi=300)
+
+#plot dynamics of change in BA - time since collapse
+Recovery_plot<-ggplot(Plots3,aes(x=Time_Coll,y=BAPERCM*100,group=Block))+geom_point()+geom_line()+geom_hline(y=0,lty=3)+facet_wrap(~Block)
+Recovery_plot2<-Recovery_plot+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+Recovery_plot2+scale_colour_discrete("Year")+ylab("Basal area percentage change relative to 1964")+xlab("Years since initial collapse")
+setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
+ggsave("Collapse_dynamics.png",width = 8,height=6,units = "in",dpi=300)
+
+
