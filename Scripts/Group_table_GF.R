@@ -18,7 +18,7 @@ head(GF)
 std <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 
 #now do calculations of means for year and group
-#first drop the colums I don't need
+#first drop the columns I don't need
 #I want to keep BA, species richness,sorenson, etc
 keeps<-c("Year","Coll_Group","BAM","BAPERCM","Perc_Cov","Sorensen","Sp_R","Light","Nit","Moist")
 GF2<-GF[keeps]
