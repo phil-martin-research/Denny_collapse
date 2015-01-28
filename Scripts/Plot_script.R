@@ -246,6 +246,9 @@ write.csv(Sor_BA4,"Denny_plots.csv",row.names=F)
 #create a subset of this containing just data on the collapse gradient
 keeps1<-c("Block","Year","BAM","BAPERCM","Northing","Easting")
 BA_grad<-Sor_BA4[keeps1]
+Block_7<-data.frame(Block=c(7,7),Year=c(1996,2014),BAM=c(0,0),BAPERCM=c(-1,-1),Northing=c(106786,106786),Easting=c(433045,433045))
+BA_grad<-rbind(BA_grad,Block_7)
+
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 write.csv(BA_grad,"BA_gradient.csv",row.names=F)
 
