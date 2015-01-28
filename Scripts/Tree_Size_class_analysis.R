@@ -90,7 +90,7 @@ M0_15<-lmer(BA_Change~1+(1|Block),data=Trees_BA_Size_15)
 plot(M0_15)
 M1_15<-lmer(BA_Change~BAPERCM+(1|Block),data=Trees_BA_Size_15)
 plot(M1_15)
-r.squaredGLMM(M1)
+r.squaredGLMM(M1_15)
 AICc(M0_15,M1_15)
 #second model marginally better
 #now plot this
@@ -138,19 +138,29 @@ AICc(M0_150,M1_150)
 plot(Trees_BA_Size_150$BAPERCM,Trees_BA_Size_150$BA_Change)
 points(Trees_BA_Size_150$BAPERCM,predict(M1_150,re.form = NA),col="red")
 
-Trees_BA_Size_150$predictions<-predict(M1_150,re.form = NA)
-Trees_BA_Size_15$predictions<-predict(M1_15,re.form = NA)
-Trees_BA_Size_25$predictions<-predict(M0_25,re.form = NA)
-Trees_BA_Size_45$predictions<-predict(M0_45,re.form = NA)
 
+Trees_BA_Size_150$predictions<-as.vector(predict(M1_150,re.form = NA))
+Trees_BA_Size_15$predictions<-as.vector(predict(M1_15,re.form = NA))
+Trees_BA_Size_25$predictions<-as.vector(predict(M0_25,re.form = NA))
+Trees_BA_Size_45$predictions<-as.vector(predict(M0_45,re.form = NA))
+
+Trees_BA_Size5<-NULL
 Trees_BA_Size5<-rbind(Trees_BA_Size_150,Trees_BA_Size_15,Trees_BA_Size_25,Trees_BA_Size_45)
 
-head(Trees_BA_Size5)
 
+Trees_BA_Size6<-subset(Trees_BA_Size5,Size_reclass=="10-15")
+Trees_BA_Size6<-subset(Trees_BA_Size6,predictions<=-0.2)
+plot(Trees_BA_Size6$BAPERCM,Trees_BA_Size6$predictions)
+
+plot(Trees_BA_Size_15$BAPERCM,Trees_BA_Size_15$predictions)
+
+ggplot(Trees_BA_Size5,aes(x=BAPERCM*100,y=predictions*100))+geom_point()+facet_wrap(~Size_Class)
+
+result<- rbind.fill(list(Trees_BA_Size_15,Trees_BA_Size_25,Trees_BA_Size_45,Trees_BA_Size_150))
 
 #and now predictions using all different models
 theme_set(theme_bw(base_size=12))
-Size_class_plot<-ggplot(Trees_BA_Size5,aes(x=BAPERCM*100,y=BA_Change*100,group=Block))+geom_point()+geom_line(data=Trees_BA_Size5,aes(x=BAPERCM*100,y=predictions*100,group=NULL))+facet_wrap(~Size_reclass,scales = "free_y")
+Size_class_plot<-ggplot(Trees_BA_Size5,aes(x=BAPERCM*100,y=BA_Change*100,group=Block))+geom_point()+facet_wrap(~Size_reclass,scales = "free_y")+geom_line(data=Trees_BA_Size5,aes(x=BAPERCM*100,y=predictions*100,group=NULL))
 Size_class_plot2<-Size_class_plot+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
 Size_class_plot2+xlab("Total basal area percentage change since 1964")+ylab("Basal area percentage change since 1964 for tree size class")
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
