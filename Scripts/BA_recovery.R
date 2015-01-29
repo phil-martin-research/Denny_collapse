@@ -70,7 +70,7 @@ AICc(M0.1,M0.2,M0.3,M0.4)
 #go with M0.1 random effects
 M1<-lmer(BAPERCM2~Time_Coll*Coll_Sever+(1|Block),data=Plots3)
 M2<-lmer(BAPERCM2~Time_Coll+Coll_Sever+(1|Block),data=Plots3)
-M3<-lmer(BAPERCM2~Time_Coll+(1|Block)+(1|Coll_Sever),data=Plots3)
+M3<-lmer(BAPERCM2~Time_Coll+(1|Block),data=Plots3)
 M4<-lmer(BAPERCM2~Coll_Sever+(1|Block),data=Plots3)
 M5<-lmer(BAPERCM2~Coll_Sever+I(Coll_Sever^2)+(1|Block),data=Plots3)
 
@@ -78,23 +78,26 @@ M5<-lmer(BAPERCM2~Coll_Sever+I(Coll_Sever^2)+(1|Block),data=Plots3)
 AICc(M1,M2,M3,M4,M5)
 
 plot(M5)
+qqnorm(resid(M5))
+qqline(resid(M5))
 
 r.squaredGLMM(M5)
+r.squaredGLMM(M3)
 
 #put predictions for M4 into dataframe
 Plots3$PredsR<-predict(M5)
 Plots3$Preds<-((plogis(predict(M5,re.form=NA)))*2)-1
 
 #create predictions for M5 in new dataframe
-Plots3$PredsR<-predict(M5)
-Plots3$Preds<-((plogis(predict(M5,re.form=NA)))*2)-1
+Predictions<-data.frame(Coll_Sever=seq(min(Plots3$Coll_Sever),max(Plots3$Coll_Sever),by=0.001))
+Predictions$Preds<-((plogis(predict(M5,re.form=NA,newdata=Predictions)))*2)-1
 
 #plot change in BA relative to intial change in BA
 theme_set(theme_bw(base_size=12))
 Recovery_plot<-ggplot(Plots3,aes(x=Coll_Sever*100,y=BAPERCM*100,colour=as.factor(Year)))+geom_point()+geom_hline(y=0,lty=2)
 Recovery_plot2<-Recovery_plot+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
 Recovery_plot3<-Recovery_plot2+scale_colour_discrete("Year")+ylab("Basal area percentage change relative to 1964")+xlab("Initial percentage change in basal area relative to 1964")
-Recovery_plot4<-Recovery_plot3+geom_line(data=Plots3,size=2,aes(x=Coll_Sever*100,y=Preds*100,colour=NULL))+ theme(legend.position="none")
+Recovery_plot4<-Recovery_plot3+geom_line(data=Predictions,size=2,aes(x=Coll_Sever*100,y=Preds*100,colour=NULL))+ theme(legend.position="none")
 
 #plot dynamics of change in BA - time since collapse
 New_coll<-data.frame(Coll_Sever=mean(Plots3$Coll_Sever))
