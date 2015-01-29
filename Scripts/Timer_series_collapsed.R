@@ -6,15 +6,16 @@ rm(list=ls(all=TRUE))
 library(ggplot2)
 library(plyr)
 library(reshape2)
+library(lme4)
+library(MuMIn)
 
 #load data
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
-Plots<-read.csv("Denny_plots.csv")
+Plots<-read.csv("Data/Denny_plots.csv")
 
 head(Plots)
 
 #add column for tanner index
-Plots$Tanner<-(Plots$Sor_BA+Plots$Sorensen.y)/2
+Plots$Tanner<-(Plots$Sor_BA+Plots$SorM)/2
 
 #classify plots by collapse status - collapsed (1) or not (0)
 Plots$Collapse<-NA
@@ -33,29 +34,41 @@ for (i in 1:length(Block_unique)){
 
 keeps<-c("Block","Year","Tanner","BAPERCM","Collapse2")
 Plots3<-Plots2[keeps]
-Plots4<-rbind(data.frame(Block=7,Year=2014,Tanner=0,BAPERCM=0,Collapse2=1),Plots3)
+Plots4<-rbind(data.frame(Block=c(7,7),Year=c(1996,2014),Tanner=c(0,0),BAPERCM=c(-1,-1),Collapse2=c(1,1)),Plots3)
+
+#now do analysis of this
+#create variable for BAPERCM that is bounded above -1
+Plots4$BAPERCM2<-ifelse(Plots4$BAPERCM==-1,-.999,Plots4$BAPERCM)
+Plots4$BAPERCM2<-qlogis((Plots4$BAPERCM2+1)/4)
+#create a variable of number of years since 1964
+Plots4$Year2<-Plots4$Year-1964
+qlogis(0.25)
+
+#now a null model
+M0.1<-lmer(BAPERCM2~1+(1|Block),data=Plots4)
+M0.2<-lmer(BAPERCM2~1+(Block|Year),data=Plots4)
+AICc(M0.1,M0.2)
+#use first random effect specification
+M1<-lmer(BAPERCM2~Year2+(1|Block),data=Plots4)
+M2<-lmer(BAPERCM2~Collapse2+(1|Block),data=Plots4)
+M3<-lmer(BAPERCM2~Year2+Collapse2+(1|Block),data=Plots4)
+M4<-lmer(BAPERCM2~Year2*Collapse2+(1|Block),data=Plots4)
+AICc(M1,M2,M3,M4)
+
+
+
+r.squaredGLMM(M4)
+
+#put in predictions
+Plots4$Preds<-((plogis(predict(M4,re.form=NA)))*4)-1
+#put in different marker of collapse
+Plots4$Collapse3<-ifelse(Plots4$Collapse2==1,"Collapsed","Stable/Increasing")
+
 
 #plot basal area time series
 theme_set(theme_bw(base_size=12))
-BA_Coll1<-ggplot(Plots4,aes(x=Year,y=BAPERCM,group=Block))+geom_point(shape=1,size=2)+geom_line()+facet_wrap(~Collapse2)
+BA_Coll1<-ggplot(Plots4,aes(x=Year,y=BAPERCM*100,group=Block))+geom_point(shape=1,size=2,alpha=0.3)+geom_line(alpha=0.3)+facet_wrap(~Collapse3)
 BA_Coll2<-BA_Coll1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-BA_Coll2+geom_smooth(se=F,method="lm",size=2,aes(group=NULL))
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
-ggsave("Collapse_BA_TS.png",width = 8,height=6,units = "in",dpi=300)
-
-#plot tanner time series
-theme_set(theme_bw(base_size=12))
-Tanner_Coll1<-ggplot(Plots4,aes(x=Year,y=Tanner,group=Block))+geom_point(shape=1,size=2)+geom_line()+facet_wrap(~Collapse2)
-Tanner_Coll2<-Tanner_Coll1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-Tanner_Coll2+geom_smooth(se=F,method="glm",size=2,aes(group=NULL))
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
-ggsave("Collapse_Tanner_TS.png",width = 8,height=6,units = "in",dpi=300)
-
-#plot trait time series
-theme_set(theme_bw(base_size=12))
-BA_Coll1<-ggplot(Plots2,aes(x=Year,y=LightPercM,group=Block))+geom_point(shape=1,size=2)+geom_line()+facet_wrap(~Collapse2)
-BA_Coll2<-BA_Coll1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-BA_Coll2+geom_smooth(se=F,method="lm",size=2,aes(group=NULL))
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
-ggsave("Collapse_BA_TS.png",width = 8,height=6,units = "in",dpi=300)
+BA_Coll2+geom_line(data=Plots4,aes(x=Year,y=Preds*100,group=NULL),size=2)+ylab("Percentage change in plot basal area relative to 1964")+xlim(c(1964,2015))
+ggsave("Figures/Collapse_BA_TS.png",width = 8,height=6,units = "in",dpi=300)
 
