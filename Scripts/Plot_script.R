@@ -172,6 +172,7 @@ for (i in 1:length(Blocks)){
   Block_subset<-subset(BA_comb,Block==Blocks[i])
   for( v in 1:nrow(Block_subset)){
     Block_subset$BAPERCM[v]<-(Block_subset$BAM[v]-Block_subset$BAM[1])/Block_subset$BAM[1]
+    Block_subset$BARR[v]<-log(Block_subset$BAM[v])-log(Block_subset$BAM[1])
     Block_subset$BARAWM[v]<-(Block_subset$BAM[v]-Block_subset$BAM[1])
     Block_subset$BAFPERCM[v]<-(Block_subset$BAFM[v]-Block_subset$BAFM[1])/Block_subset$BAFM[1]
     Block_subset$BAFRAWM[v]<-(Block_subset$BAFM[v]-Block_subset$BAFM[1])
@@ -244,9 +245,9 @@ setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse
 write.csv(Sor_BA4,"Denny_plots.csv",row.names=F)
 
 #create a subset of this containing just data on the collapse gradient
-keeps1<-c("Block","Year","BAM","BAPERCM","Northing","Easting")
+keeps1<-c("Block","Year","BAM","BAPERCM","BARR","Northing","Easting")
 BA_grad<-Sor_BA4[keeps1]
-Block_7<-data.frame(Block=c(7,7),Year=c(1996,2014),BAM=c(0,0),BAPERCM=c(-1,-1),Northing=c(106786,106786),Easting=c(433045,433045))
+Block_7<-data.frame(Block=c(7,7),Year=c(1996,2014),BAM=c(0,0),BAPERCM=c(-1,-1),BARR=c(-13,-13),Northing=c(106786,106786),Easting=c(433045,433045))
 BA_grad<-rbind(BA_grad,Block_7)
 
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
