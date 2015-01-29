@@ -11,8 +11,7 @@ library(lme4)
 library(MuMIn)
 
 #load in data
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
-BA<-read.csv("BA_Gradient.csv")
+BA<-read.csv("Data/BA_Gradient.csv")
 
 #classify plots by collapse status - declined, or not
 BA$Collapse<-NA
@@ -50,43 +49,60 @@ ggplot(Plots2,aes(x=Coll_Sever,y=BAPERCM,group=Block))+geom_point()
 
 
 #now subset to give plots post decline
-Plots3<-subset(Plots2,Collapse3==1)
+Plots3<-subset(Plots2,Collapse2==1)
 Plots3<-subset(Plots2,Time_Coll>0)
 
-#model of recovery as a function of collapse
-M0.1<-lmer(BAPERCM~(1|Block),data=Plots3)
-M0.2<-lmer(BAPERCM~(0+Block|Time_Coll),data=Plots3)
-M0.3<-lmer(BAPERCM~(1|Block)+(0+Block|Time_Coll),data=Plots3)
-M0.3<-lmer(BAPERCM~(1|Block)+(0+Block|Coll_Sever),data=Plots3)
+#create new variable for percentage change so that it is bound above -100%
+summary(Plots3$BAPERCM)
 
-AICc(M0.1,M0.2)
+Plots3$BAPERCM2<-Plots3$BAPERCM+1
+Plots3$BAPERCM2<-ifelse(Plots3$BAPERCM2==0,0.0001,Plots3$BAPERCM2)
+Plots3$BAPERCM2<-qlogis(Plots3$BAPERCM2/2)
+
+#model of recovery as a function of collapse
+M0.1<-lmer(BAPERCM2~(1|Block),data=Plots3)
+M0.2<-lmer(BAPERCM2~(0+Block|Time_Coll),data=Plots3)
+M0.3<-lmer(BAPERCM2~(1|Block)+(0+Block|Time_Coll),data=Plots3)
+M0.4<-lmer(BAPERCM2~(1|Block)+(0+Block|Coll_Sever),data=Plots3)
+
+AICc(M0.1,M0.2,M0.3,M0.4)
 
 #go with M0.1 random effects
-M1<-lmer(BAPERCM~Time_Coll*Coll_Sever+(1|Block),data=Plots3)
-M2<-lmer(BAPERCM~Time_Coll+Coll_Sever+(1|Block),data=Plots3)
-M3<-lmer(BAPERCM~Time_Coll+(1|Block)+(1|Coll_Sever),data=Plots3)
-M4<-lmer(BAPERCM~Coll_Sever+(1|Block),data=Plots3)
+M1<-lmer(BAPERCM2~Time_Coll*Coll_Sever+(1|Block),data=Plots3)
+M2<-lmer(BAPERCM2~Time_Coll+Coll_Sever+(1|Block),data=Plots3)
+M3<-lmer(BAPERCM2~Time_Coll+(1|Block)+(1|Coll_Sever),data=Plots3)
+M4<-lmer(BAPERCM2~Coll_Sever+(1|Block),data=Plots3)
+M5<-lmer(BAPERCM2~Coll_Sever+I(Coll_Sever^2)+(1|Block),data=Plots3)
 
-AICc(M1,M2,M3,M4)
 
-plot(Plots3$Coll_Sever,Plots3$BAPERCM)
-points(Plots3$Coll_Sever,predict(M2,re.form = NA),col="red")
-abline(a=0,b=1)
-plot(Plots3$Time_Coll,Plots3$BAPERCM)
-points(Plots3$Time_Coll,predict(M3,re.form = NA),col="red")
+AICc(M1,M2,M3,M4,M5)
+
+plot(M5)
+
+r.squaredGLMM(M5)
+
+#put predictions for M4 into dataframe
+Plots3$PredsR<-predict(M5)
+Plots3$Preds<-((plogis(predict(M5,re.form=NA)))*2)-1
+
+#create predictions for M5 in new dataframe
+Plots3$PredsR<-predict(M5)
+Plots3$Preds<-((plogis(predict(M5,re.form=NA)))*2)-1
 
 #plot change in BA relative to intial change in BA
-Recovery_plot<-ggplot(Plots3,aes(x=Coll_Sever*100,y=BAPERCM*100,colour=as.factor(Year)))+geom_point()+geom_abline(lty=2)+geom_hline(y=0,lty=3)
+theme_set(theme_bw(base_size=12))
+Recovery_plot<-ggplot(Plots3,aes(x=Coll_Sever*100,y=BAPERCM*100,colour=as.factor(Year)))+geom_point()+geom_hline(y=0,lty=2)
 Recovery_plot2<-Recovery_plot+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-Recovery_plot2+scale_colour_discrete("Year")+ylab("Basal area percentage change relative to 1964")+xlab("Initial percentage change in basal area relative to 1964")
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
-ggsave("Collapse_recovery.png",width = 8,height=6,units = "in",dpi=300)
+Recovery_plot3<-Recovery_plot2+scale_colour_discrete("Year")+ylab("Basal area percentage change relative to 1964")+xlab("Initial percentage change in basal area relative to 1964")
+Recovery_plot4<-Recovery_plot3+geom_line(data=Plots3,size=2,aes(x=Coll_Sever*100,y=Preds*100,colour=NULL))+ theme(legend.position="none")
 
 #plot dynamics of change in BA - time since collapse
-Recovery_plot<-ggplot(Plots3,aes(x=Time_Coll,y=BAPERCM*100,group=Block))+geom_point()+geom_line()+geom_hline(y=0,lty=3)+facet_wrap(~Block)
-Recovery_plot2<-Recovery_plot+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-Recovery_plot2+scale_colour_discrete("Year")+ylab("Basal area percentage change relative to 1964")+xlab("Years since initial collapse")
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
-ggsave("Collapse_dynamics.png",width = 8,height=6,units = "in",dpi=300)
+New_coll<-data.frame(Coll_Sever=mean(Plots3$Coll_Sever))
+predict(M4,re.form=NA,newdata=New_coll)
+Dynamics_plot<-ggplot(Plots3,aes(x=Time_Coll,y=BAPERCM*100,group=Block))+geom_point(alpha=0.5)+geom_line(alpha=0.5)+geom_hline(y=0,lty=2)
+Dynamics_plot2<-Dynamics_plot+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+Dynamics_plot3<-Dynamics_plot2+scale_colour_discrete("Year")+ylab("Basal area percentage change relative to 1964")+xlab("Years since initial collapse")+geom_line(y=-36.7,size=2)+xlim(c(0,30))
 
-
+png(filename="Figures/Recovery.png",height=6,width=12,units="in",res=300)
+grid.arrange(Recovery_plot4,Dynamics_plot3, ncol=2)
+dev.off()
