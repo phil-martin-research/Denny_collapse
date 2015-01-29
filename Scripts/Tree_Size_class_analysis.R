@@ -23,15 +23,16 @@ Trees_M<-subset(Trees_live,DBH>10)
 #create a loop to classify trees into different size classes into quantiles
 quantile(Trees_M$DBH)
 Trees_M_Size<-NULL
-Size_class<-data.frame(min=c(10,15,25,45,150))
+Size_class<-data.frame(minimum=c(10,15,25,45,150))
 for (i in 2:nrow(Size_class)){
-  Tree_subset<-subset(Trees_M,DBH>Size_class$min[i-1])
-  Tree_subset<-subset(Tree_subset,DBH<=Size_class$min[i])
-  Tree_subset$Size_Class<-Size_class$min[i]
+  Tree_subset<-subset(Trees_M,DBH>Size_class$minimum[i-1])
+  head(Tree_subset)
+  Tree_subset<-subset(Tree_subset,DBH<Size_class$minimum[i])
+  Tree_subset$Size_Class<-Size_class$minimum[i]
   Trees_M_Size<-rbind(Tree_subset,Trees_M_Size)
 }
 
-
+head(Trees_M_Size)
 #create count of stems in certain size classes
 Stem_density_Size<-count(Trees_M_Size,var=c("Block","Year","Size_Class"))
 
@@ -63,7 +64,7 @@ for (i in 1:nrow(Trees_unique)){
 
 #now loop through to create better label name for each size class
 Size_reclass<-data.frame(Size=c(15,25,45,150),New_size=c("10-15","15-25","25-45","45-150"))
-Trees_BA_Size3$Size_reclass<-character(length = 902)
+Trees_BA_Size3$Size_reclass<-character(length = 899)
 for (i in 1:nrow(Size_reclass)){
   for (y in 1:nrow(Trees_BA_Size3)){
   Trees_BA_Size3$Size_reclass[y]<-ifelse(Trees_BA_Size3$Size_Class[y]==Size_reclass[i,1],as.character(Size_reclass[i,2]),Trees_BA_Size3$Size_reclass[y])
@@ -84,7 +85,7 @@ Trees_BA_Size4$BAPERCM2<-Trees_BA_Size4$BAPERCM*(-1)
 #now model this
 #first a null model
 #first for trees <15cm
-Trees_BA_Size_15<-subset(Trees_BA_Size4,Size_Class<=15)
+Trees_BA_Size_15<-subset(Trees_BA_Size4,Size_Class==15)
 
 M0_15<-lmer(BA_Change~1+(1|Block),data=Trees_BA_Size_15)
 plot(M0_15)
@@ -98,7 +99,7 @@ plot(Trees_BA_Size_15$BAPERCM,Trees_BA_Size_15$BA_Change)
 points(Trees_BA_Size_15$BAPERCM,predict(M1_15,re.form = NA),col="red")
 
 #next for trees <25cm
-Trees_BA_Size_25<-subset(Trees_BA_Size4,Size_Class<=25)
+Trees_BA_Size_25<-subset(Trees_BA_Size4,Size_Class==25)
 M0_25<-lmer(BA_Change~1+(1|Block),data=Trees_BA_Size_25)
 plot(M0_25)
 M1_25<-lmer(BA_Change~BAPERCM+(1|Block),data=Trees_BA_Size_25)
@@ -112,7 +113,7 @@ points(Trees_BA_Size_25$BAPERCM,predict(M0_25,re.form = NA),col="red")
 
 
 #next for trees <45cm
-Trees_BA_Size_45<-subset(Trees_BA_Size4,Size_Class<=45)
+Trees_BA_Size_45<-subset(Trees_BA_Size4,Size_Class==45)
 M0_45<-lmer(BA_Change~1+(1|Block),data=Trees_BA_Size_45)
 plot(M0_45)
 M1_45<-lmer(BA_Change~BAPERCM+(1|Block),data=Trees_BA_Size_45)
@@ -126,7 +127,7 @@ points(Trees_BA_Size_45$BAPERCM,predict(M0_45,re.form = NA),col="red")
 
 
 #next for trees <150cm
-Trees_BA_Size_150<-subset(Trees_BA_Size4,Size_Class>45)
+Trees_BA_Size_150<-subset(Trees_BA_Size4,Size_Class==150)
 M0_150<-lmer(BA_Change~1+(1|Block),data=Trees_BA_Size_150)
 plot(M0_150)
 M1_150<-lmer(BA_Change~BAPERCM+(1|Block),data=Trees_BA_Size_150)
@@ -141,26 +142,18 @@ points(Trees_BA_Size_150$BAPERCM,predict(M1_150,re.form = NA),col="red")
 
 Trees_BA_Size_150$predictions<-as.vector(predict(M1_150,re.form = NA))
 Trees_BA_Size_15$predictions<-as.vector(predict(M1_15,re.form = NA))
-Trees_BA_Size_25$predictions<-as.vector(predict(M0_25,re.form = NA))
+Trees_BA_Size_25$predictions<-(-0.1046998)
 Trees_BA_Size_45$predictions<-as.vector(predict(M0_45,re.form = NA))
 
+
 Trees_BA_Size5<-NULL
-Trees_BA_Size5<-rbind(Trees_BA_Size_150,Trees_BA_Size_15,Trees_BA_Size_25,Trees_BA_Size_45)
+Trees_BA_Size5<- rbind.fill(list(Trees_BA_Size_15,Trees_BA_Size_25,Trees_BA_Size_45,Trees_BA_Size_150))
 
-
-Trees_BA_Size6<-subset(Trees_BA_Size5,Size_reclass=="10-15")
-Trees_BA_Size6<-subset(Trees_BA_Size6,predictions<=-0.2)
-plot(Trees_BA_Size6$BAPERCM,Trees_BA_Size6$predictions)
-
-plot(Trees_BA_Size_15$BAPERCM,Trees_BA_Size_15$predictions)
-
-ggplot(Trees_BA_Size5,aes(x=BAPERCM*100,y=predictions*100))+geom_point()+facet_wrap(~Size_Class)
-
-result<- rbind.fill(list(Trees_BA_Size_15,Trees_BA_Size_25,Trees_BA_Size_45,Trees_BA_Size_150))
+ggplot(Trees_BA_Size5,aes(x=BAPERCM,y=predictions))+geom_point()+facet_wrap(~Size_reclass)
 
 #and now predictions using all different models
 theme_set(theme_bw(base_size=12))
-Size_class_plot<-ggplot(Trees_BA_Size5,aes(x=BAPERCM*100,y=BA_Change*100,group=Block))+geom_point()+facet_wrap(~Size_reclass,scales = "free_y")+geom_line(data=Trees_BA_Size5,aes(x=BAPERCM*100,y=predictions*100,group=NULL))
+Size_class_plot<-ggplot(Trees_BA_Size5,aes(x=BAPERCM*100,y=BA_Change*100,group=Block))+geom_point(shape=1)+facet_wrap(~Size_reclass,scales = "free_y")+geom_line(data=Trees_BA_Size5,aes(x=BAPERCM*100,y=predictions*100,group=NULL))
 Size_class_plot2<-Size_class_plot+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
 Size_class_plot2+xlab("Total basal area percentage change since 1964")+ylab("Basal area percentage change since 1964 for tree size class")
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
