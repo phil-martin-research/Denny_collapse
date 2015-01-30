@@ -1,0 +1,46 @@
+#Hi Paul - this is an example bit of code to show you how to plot
+#using ggplot2 in a similar way to that I have been using for our work
+
+rm(list=ls(all=TRUE))#first detach all objects this is good practice
+
+require(ggplot2) #now load up the packages you will use - ggplot
+require(lme4) #and another to produce random effects models
+
+Grad<-read.csv("Data/BA_gradient.csv")#and now the data
+
+###########################################################
+#figures in ggplot2########################################
+###########################################################
+
+#ggplot2 work a bit differently to the normal plot function in R
+#but generally I think it's more intuative and simpler
+
+#the function ggplot tells R you want to make a plot and then you define your variables in this
+
+ggplot(data=Grad,aes(x=Year,y=BAM,group=Block))
+#this won't do anything, but it's just to show you the structure of ggplot
+#aes defines the variables or 'aesthetics' for your plot
+#x=the x variable, y the y (here basal area of trees >10cm DBH) 
+#and group indicates how you want your data to be organised
+#the importance of group will come in later
+
+ggplot(data=Grad,aes(x=Year,y=BAM,group=Block))+geom_point()
+#lovely, we have a plot. geom_point adds our points
+#geoms are basically features you want to plot
+#however it is a bit lacking in information
+
+ggplot(data=Grad,aes(x=Year,y=BAM,group=Block))+geom_point()+geom_line()
+#sticking geom_line on there allows us to follow the trajectories of the plots
+#but it is a bit messy
+
+ggplot(data=Grad,aes(x=Year,y=BAM,group=Block))+geom_point()+geom_line()+facet_wrap(~Block)
+#now things are a bit clearer
+#facet_wrap is an invaluable function in ggplot especially good for data
+#exploration. It splits the data into seperate graphs using whatever variable
+#you put after the ~. In our case it is the plot number 
+#so we get the different trajectores for each plot on seperate graphs
+
+#you can do much, much more than this. The best advice I can offer is for you to have a play
+#around and see what you can do. It probably has the best help of all the R packages
+#which you can find here: http://docs.ggplot2.org/current/
+
