@@ -4,7 +4,6 @@
 rm(list=ls(all=TRUE))#first detach all objects this is good practice
 
 require(ggplot2) #now load up the packages you will use - ggplot
-require(lme4) #and another to produce random effects models
 
 Grad<-read.csv("Data/BA_gradient.csv")#and now the data
 
