@@ -39,6 +39,19 @@ ggplot(data=Grad,aes(x=Year,y=BAM,group=Block))+geom_point()+geom_line()+facet_w
 #you put after the ~. In our case it is the plot number 
 #so we get the different trajectores for each plot on seperate graphs
 
+
+ggplot(data=Grad,aes(x=Year,y=BAM,group=Block))+geom_point()+geom_line()+geom_smooth(aes(group=NULL),size=3)
+#going back to the previous plot you can also get a rough idea of the change over time
+#by fitting a geom_smooth - essentially a very rough model.
+#it's useful for exploration of relationships but is not really analysis
+#size specifies the line thickness and the default fit is a smoothed loess curve with 
+#standard errors
+
+ggplot(data=Grad,aes(x=Year,y=BAM,group=Block))+geom_point()+geom_line()+geom_smooth(aes(group=NULL),size=3,method="lm")
+
+#for a slightly more reasonable plot you can constrain the relationship between x and y to be linear
+#like we have done above
+
 #you can do much, much more than this. The best advice I can offer is for you to have a play
 #around and see what you can do. It probably has the best help of all the R packages
 #which you can find here: http://docs.ggplot2.org/current/
