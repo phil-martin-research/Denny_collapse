@@ -78,66 +78,68 @@ ggplot(Trees_BA_Size3,aes(x=Year,y=BA_Change,group=Block))+geom_point()+facet_wr
 
 #subset to remove blocks from 1964
 Trees_BA_Size4<-subset(Trees_BA_Size3,Year>1964)
-Trees_BA_Size4<-subset(Trees_BA_Size4,BAPERCM<1)
 Trees_BA_Size4$BA_Change2<-Trees_BA_Size4$BA_Change*(-1)
 Trees_BA_Size4$BAPERCM2<-Trees_BA_Size4$BAPERCM*(-1)
+Trees_BA_Size4$BAPERCM3<-qlogis((Trees_BA_Size4$BAPERCM+1)/3.2)
 
 #now model this
 #first a null model
 #first for trees <15cm
 Trees_BA_Size_15<-subset(Trees_BA_Size4,Size_Class==15)
 
-M0_15<-lmer(BA_Change~1+(1|Block),data=Trees_BA_Size_15)
+M0_15<-lmer(BAPERCM~1+(1|Block),data=Trees_BA_Size_15)
 plot(M0_15)
-M1_15<-lmer(BA_Change~BAPERCM+(1|Block),data=Trees_BA_Size_15)
+M1_15<-lmer(BAPERCM~BA_Change+(1|Block),data=Trees_BA_Size_15)
 plot(M1_15)
 r.squaredGLMM(M1_15)
 AICc(M0_15,M1_15)
 #second model marginally better
 #now plot this
-plot(Trees_BA_Size_15$BAPERCM,Trees_BA_Size_15$BA_Change)
-points(Trees_BA_Size_15$BAPERCM,predict(M1_15,re.form = NA),col="red")
+plot(Trees_BA_Size_15$BA_Change,Trees_BA_Size_15$BAPERCM)
+points(Trees_BA_Size_15$BA_Change,predict(M0_15,re.form = NA),col="red")
 
 #next for trees <25cm
 Trees_BA_Size_25<-subset(Trees_BA_Size4,Size_Class==25)
-M0_25<-lmer(BA_Change~1+(1|Block),data=Trees_BA_Size_25)
+M0_25<-lmer(BAPERCM3~1+(1|Block),data=Trees_BA_Size_25)
 plot(M0_25)
-M1_25<-lmer(BA_Change~BAPERCM+(1|Block),data=Trees_BA_Size_25)
+M1_25<-lmer(BAPERCM3~BA_Change+(1|Block),data=Trees_BA_Size_25)
 plot(M1_25)
 r.squaredGLMM(M1_25)
 AICc(M0_25,M1_25)
 #null model is better
 #now plot this
-plot(Trees_BA_Size_25$BAPERCM,Trees_BA_Size_25$BA_Change)
-points(Trees_BA_Size_25$BAPERCM,predict(M0_25,re.form = NA),col="red")
+plot(Trees_BA_Size_25$BA_Change,Trees_BA_Size_25$BAPERCM3)
+points(Trees_BA_Size_25$BA_Change,predict(M0_25,re.form = NA),col="red")
 
 
 #next for trees <45cm
 Trees_BA_Size_45<-subset(Trees_BA_Size4,Size_Class==45)
-M0_45<-lmer(BA_Change~1+(1|Block),data=Trees_BA_Size_45)
+M0_45<-lmer(BAPERCM3~1+(1|Block),data=Trees_BA_Size_45)
 plot(M0_45)
-M1_45<-lmer(BA_Change~BAPERCM+(1|Block),data=Trees_BA_Size_45)
+M1_45<-lmer(BAPERCM3~BA_Change+(1|Block),data=Trees_BA_Size_45)
 plot(M1_45)
 r.squaredGLMM(M1_45)
 AICc(M0_45,M1_45)
 #null model is better
 #now plot this
-plot(Trees_BA_Size_45$BAPERCM,Trees_BA_Size_45$BA_Change)
-points(Trees_BA_Size_45$BAPERCM,predict(M0_45,re.form = NA),col="red")
+plot(Trees_BA_Size_45$BA_Change,Trees_BA_Size_45$BAPERCM3)
+points(Trees_BA_Size_45$BA_Change,predict(M0_45,re.form = NA),col="red")
 
 
-#next for trees <150cm
+#next for trees >45cm
 Trees_BA_Size_150<-subset(Trees_BA_Size4,Size_Class==150)
-M0_150<-lmer(BA_Change~1+(1|Block),data=Trees_BA_Size_150)
+M0_150<-lmer(BAPERCM3~1+(1|Block),data=Trees_BA_Size_150)
 plot(M0_150)
-M1_150<-lmer(BA_Change~BAPERCM+(1|Block),data=Trees_BA_Size_150)
+M1_150<-lmer(BAPERCM3~BA_Change+(1|Block),data=Trees_BA_Size_150)
 plot(M1_150)
-r.squaredGLMM(M1_150)
-AICc(M0_150,M1_150)
+M2_150<-lmer(BAPERCM3~log(BA_Change+1)+(1|Block),data=Trees_BA_Size_150)
+plot(M2_150)
+r.squaredGLMM(M2_150)
+AICc(M0_150,M1_150,M2_150)
 #model 1 is better
 #now plot this
-plot(Trees_BA_Size_150$BAPERCM,Trees_BA_Size_150$BA_Change)
-points(Trees_BA_Size_150$BAPERCM,predict(M1_150,re.form = NA),col="red")
+plot(Trees_BA_Size_150$BA_Change,Trees_BA_Size_150$BAPERCM3)
+points(Trees_BA_Size_150$BA_Change,predict(M2_150,re.form = NA),col="red")
 
 
 Trees_BA_Size_150$predictions<-as.vector(predict(M1_150,re.form = NA))
