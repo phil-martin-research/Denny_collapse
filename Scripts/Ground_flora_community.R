@@ -94,36 +94,53 @@ BA_ab<-merge(Rel_Ab,BA2,by=c("Block","Year"))
 ############################################################
 Grass_ab<-subset(BA_ab,Year>1964)
 Grass_ab$PCC<-ifelse(Grass_ab$PCC>100,100,Grass_ab$PCC)
+Grass_ab$BAPERCM2<-Grass_ab$BAPERCM*(-1)
+
+summary(Grass_ab$PCC)
+
 
 #null model
-M0.1_G<-lmer(qlogis((PCC+4)/200)~1+(1|Block),data=Grass_ab)
-M0.2_G<-lmer(qlogis((PCC+4)/200)~1+(Block|Year),data=Grass_ab)
+M0.1_G<-lmer(qlogis((PCC+4)/105)~1+(1|Block),data=Grass_ab)
+M0.2_G<-lmer(qlogis((PCC+4)/105)~1+(Block|Year),data=Grass_ab)
 AICc(M0.1_G,M0.2_G)#the more simple model seems fine so we go with that
 
-M1_G<-lmer(qlogis((PCC+4)/200)~BAPERCM+(Block|Year),data=Grass_ab)
-M2_G<-lmer(qlogis((PCC+4)/200)~BAPERCM+I(BAPERCM^2)+(Block|Year),data=Grass_ab)
-M3_G<-lmer(qlogis((PCC+4)/200)~BAPERCM+I(BAPERCM^2)+I(BAPERCM^3)+(Block|Year),data=Grass_ab)
-M4_G<-lmer(qlogis((PCC+4)/200)~log(BAPERCM+1)+(Block|Year),data=Grass_ab)
+M1_G<-lmer(qlogis((PCC+4)/105)~BAPERCM2+(Block|Year),data=Grass_ab)
+M2_G<-lmer(qlogis((PCC+4)/105)~BAPERCM2+I(BAPERCM^2)+(Block|Year),data=Grass_ab)
+M3_G<-lmer(qlogis((PCC+4)/105)~BAPERCM2+I(BAPERCM^2)+I(BAPERCM^3)+(Block|Year),data=Grass_ab)
 plot(M1_G)
 plot(M2_G)
 plot(M3_G)
-plot(M4_G)
+
+Grass_models<-list(M1_G,M2_G,M3_G,M0.2_G)
+
+Grass_sel<-model.sel(Grass_models,REML=F)
+Grass_sel$R_sq<-c(r.squaredGLMM(M3_G)[1],r.squaredGLMM(M2_G)[1],r.squaredGLMM(M1_G)[1],r.squaredGLMM(M0.2_G)[1])
+
+Grass_sel2<-subset(Grass_sel,delta<=7)
+
+Grass_avg<-model.avg(list(M1_G,M2_G,M3_G))
+
+Grass_pred_se<-predict(Grass_avg,se.fit=T)
+
+plot(Grass_ab$BAPERCM2,Grass_ab$PCC)
+points(Grass_ab$BAPERCM2,(((plogis(predict(M3_G,re.form=NA)))*105)-4),col="red")
+points(Grass_ab$BAPERCM2,(((plogis(Grass_pred_se$fit))*105)-4),col="red")
+points(Grass_ab$BAPERCM2,(((plogis(Grass_pred_se$fit+(Grass_pred_se$se.fit*1.96)))*105)-4),col="red")
+points(Grass_ab$BAPERCM2,(((plogis(Grass_pred_se$fit-(Grass_pred_se$se.fit*1.96)))*105)-4),col="red")
 
 
-AICc(M0.2_G,M1_G,M2_G,M3_G,M4_G)
+Grass_ab$pred<-(((plogis(Grass_pred_se$fit))*105)-4)
+Grass_ab$UCI<-(((plogis(Grass_pred_se$fit+(Grass_pred_se$se.fit*1.96)))*105)-4)
+Grass_ab$LCI<-(((plogis(Grass_pred_se$fit-(Grass_pred_se$se.fit*1.96)))*105)-4)
 
-plot(Grass_ab$BAPERCM,Grass_ab$PCC)
-line(Grass_ab$BAPERCM,(((plogis(predict(M3_G,re.form=NA)))*200)-4),col="red")
 
-
-Grass_ab$pred<-((plogis(predict(M3_G,re.form=NA)))*200)-4
 
 #plot this relationship
 theme_set(theme_bw(base_size=12))
-Grass_plot1<-ggplot(Grass_ab,aes(x=BAPERCM*100,y=PCC,colour=as.factor(Year)))+geom_point(shape=1,size=3)
+Grass_plot1<-ggplot(Grass_ab,aes(x=BAPERCM2*100,y=PCC,colour=as.factor(Year)))+geom_point(shape=1,size=3)
 Grass_plot2<-Grass_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-Grass_plot3<-Grass_plot2+geom_line(data=Grass_ab,aes(x=BAPERCM*100,y=pred,colour=NULL),size=2)+ylab("Percentage change in grass cover since 1964")+xlab("Percentage change in basal area since 1964")
-Grass_plot3+scale_colour_brewer("Year",palette ="Set1")
+Grass_plot3<-Grass_plot2+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=pred,colour=NULL),size=2,alpha=0.8)+ylab("Percentage change in grass cover since 1964")+xlab("Percentage loss of basal area since 1964")
+Grass_plot3+scale_colour_brewer("Year",palette ="Set1")+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=UCI,colour=NULL),size=1.5,lty=2,alpha=0.8)+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=LCI,colour=NULL),size=1.5,lty=2,alpha=0.8)
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("Grass_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
 
@@ -135,8 +152,8 @@ Bracken<-subset(GF_melt2,variable=="Pteridium.aquilinum")
 
 #calculate changes in bracken abundance relative to first survey
 #do this using a loop and calculating the raw percentage difference
-head(Grass_cover)
-Grass_cover<-Grass_cover[with(Grass_cover, order(Year)), ]
+head(Bracken)
+Bracken<-Bracken[with(Bracken, order(Year)), ]
 
 Blocks<-unique(Bracken$Block)
 Rel_Ab<-NULL
@@ -155,9 +172,9 @@ Brack_Ab<-subset(Brack_Ab,Year>1964)
 
 
 theme_set(theme_bw(base_size=12))
-Brack_plot1<-ggplot(Brack_Ab,aes(x=BAPERCM*100,y=PCC,colour=as.factor(Year)))+geom_point(shape=1,size=3)
+Brack_plot1<-ggplot(Brack_Ab,aes(x=BAPERCM*100*(-1),y=PCC,colour=as.factor(Year)))+geom_point(shape=1,size=3)
 Brack_plot2<-Brack_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-Brack_plot2+scale_colour_brewer("Year",palette ="Set1")+ylab("Percentage change in bracken cover since 1964")+xlab("Percentage change in basal area since 1964")
+Brack_plot2+scale_colour_brewer("Year",palette ="Set1")+ylab("Percentage change in bracken cover since 1964")+xlab("Percentage loss of basal area since 1964")
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("Bracken_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
 
@@ -176,7 +193,7 @@ head(GF_Sp_R)
 
 Block_SpR<-unique(GF_Sp_R$Block)
 Rel_SpR<-NULL
-for (i in 1:nrow(Species)){
+for (i in 1:length(Block_SpR)){
   SpR_block<-subset(GF_Sp_R,Block==Block_SpR[i])  
   SpR_block$PSpR<-log(SpR_block$freq)-log(SpR_block$freq[1])
   Rel_SpR<-rbind(Rel_SpR,SpR_block)
@@ -187,39 +204,56 @@ for (i in 1:nrow(Species)){
 #merge species richness data to plot data
 GF_Sp_BA<-merge(Rel_SpR,BA,by=c("Block","Year"))
 str(GF_Sp_BA)
+GF_Sp_BA$BAPERCM2<-GF_Sp_BA$BAPERCM*(-1)
+GF_Sp_BA<-subset(GF_Sp_BA,Year>1964)
+
 
 #plot of relationship between species richness against collapse gradient
 #null model
-Rich_M0.1<-lmer(PSpR~1+(1|Block),data=Rel_SpR)
-Rich_M0.2<-lmer(PSpR~1+(Block|Year),data=Rel_SpR)
+Rich_M0.1<-lmer(PSpR~1+(1|Block),data=GF_Sp_BA)
+Rich_M0.2<-lmer(PSpR~1+(Block|Year),data=GF_Sp_BA)
 
 #linear relationship - this is really the only logical relationship I can think of
-Rich_M1<-lmer(PSpR~BAPERCM+(1|Block),data=GF_Sp_BA)
-Rich_M2<-lmer(PSpR~BAPERCM+I(BAPERCM^2)+(1|Block),data=GF_Sp_BA)
+Rich_M1<-lmer(PSpR~BAPERCM2+(Block|Year),data=GF_Sp_BA)
+Rich_M2<-lmer(PSpR~BAPERCM2+I(BAPERCM^2)+(Block|Year),data=GF_Sp_BA)
+Rich_M3<-lmer(PSpR~BAPERCM2+I(BAPERCM^2)+I(BAPERCM^3)+(Block|Year),data=GF_Sp_BA)
+
 
 plot(Rich_M1)
 plot(Rich_M2)
 
-AICc(Rich_M0.1,Rich_M1,Rich_M2)
-r.squaredGLMM(Rich_M1)
+
+
+AICc(Rich_M0.1,Rich_M1,Rich_M2,Rich_M3)
 #the model is the best we have but doesn't say too much - the descriptive power is low
-#r squared <0.1
+#r squared <0.2
+Rich_models<-list(Rich_M1,Rich_M2,Rich_M0.2)
 
-#produce predictions for this model
-#first produce variable to use for prediction
-summary(GF_Sp_BA$BAPERCM)
+Rich_sel<-model.sel(Rich_models,REML=F)
+Rich_sel$R_sq<-c(r.squaredGLMM(Rich_M2)[1],r.squaredGLMM(Rich_M1)[1],r.squaredGLMM(Rich_M0.2)[1])
 
-BAPERCM<-data.frame(seq(from=min(GF_Sp_BA$BAPERCM),to=max(GF_Sp_BA$BAPERCM),length.out = 500))
-colnames(BAPERCM)<-"BAPERCM"
-PSpR<-(exp(predict(Rich_M1,newdata=BAPERCM,re.form=NA)))-1
-Rich_pred<-cbind(PSpR,BAPERCM)
+Rich_avg<-model.avg(list(Rich_M2,Rich_M1))
+
+Rich_pred_se<-predict(Rich_avg,se.fit=T)
+
+plot(GF_Sp_BA$BAPERCM2,exp(GF_Sp_BA$PSpR)-1)
+points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se$fit)-1,col="red")
+points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se$fit+(Rich_pred_se$se.fit*1.96))-1,col="red")
+points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se$fit-(Rich_pred_se$se.fit*1.96))-1,col="red")
+
+#put predictions into model
+GF_Sp_BA$pred<-exp(Rich_pred_se$fit)-1
+GF_Sp_BA$UCI<-exp(Rich_pred_se$fit+(Rich_pred_se$se.fit*1.96))-1
+GF_Sp_BA$LCI<-exp(Rich_pred_se$fit-(Rich_pred_se$se.fit*1.96))-1
+
 
 
 #plot richness against BA
 theme_set(theme_bw(base_size=12))
-Rich_BA<-ggplot(GF_Sp_BA,aes(x=BAPERCM*100,y=(exp(PSpR)-1)*100))+geom_point(shape=1,size=3,aes(colour=as.factor(Year)))
-Rich_BA2<-Rich_BA+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+ylab("Percentage change in species richness of ground flora since 1964")+xlab("Percentage change in basal area since 1964")
-Rich_BA2+geom_line(data=Rich_pred,aes(x=BAPERCM*100,y=PSpR*100))+scale_colour_discrete(name="Year of measurements")
+Rich_BA<-ggplot(GF_Sp_BA,aes(x=BAPERCM2*100,y=(exp(PSpR)-1)*100))+geom_point(shape=1,size=3,aes(colour=as.factor(Year)))
+Rich_BA2<-Rich_BA+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+ylab("Percentage change ground flora species richness since 1964")+xlab("Percentage loss of basal area since 1964")
+Rich_BA3<-Rich_BA2+geom_line(data=GF_Sp_BA,aes(x=BAPERCM2*100,y=pred*100))+scale_colour_brewer(name="Year",palette ="Set1")
+Rich_BA3+geom_line(data=GF_Sp_BA,aes(x=BAPERCM2*100,y=UCI*100),lty=2,alpha=0.8)+geom_line(data=GF_Sp_BA,aes(x=BAPERCM2*100,y=LCI*100),lty=2,alpha=0.8)
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("GF_SPR_change.png",width = 8,height=6,units = "in",dpi=300)
 
