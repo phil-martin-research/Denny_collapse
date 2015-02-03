@@ -38,37 +38,38 @@ Plots4<-rbind(data.frame(Block=c(7,7),Year=c(1996,2014),Tanner=c(0,0),BAPERCM=c(
 
 #now do analysis of this
 #create variable for BAPERCM that is bounded above -1
-Plots4$BAPERCM2<-ifelse(Plots4$BAPERCM==-1,-.999,Plots4$BAPERCM)
-Plots4$BAPERCM2<-qlogis((Plots4$BAPERCM2+1)/4)
+Plots4$BAPERCM2<-Plots4$BAPERCM*(-1)
+summary(Plots4$BAPERCM2)
+Plots4$BAPERCM3<-qlogis((Plots4$BAPERCM2+2.2)/3.3)
+
 #create a variable of number of years since 1964
 Plots4$Year2<-Plots4$Year-1964
-qlogis(0.25)
 
 #now a null model
-M0.1<-lmer(BAPERCM2~1+(1|Block),data=Plots4)
-M0.2<-lmer(BAPERCM2~1+(Block|Year),data=Plots4)
+M0.1<-lmer(BAPERCM3~1+(1|Block),data=Plots4)
+M0.2<-lmer(BAPERCM3~1+(Block|Year),data=Plots4)
 AICc(M0.1,M0.2)
 #use first random effect specification
-M1<-lmer(BAPERCM2~Year2+(1|Block),data=Plots4)
-M2<-lmer(BAPERCM2~Collapse2+(1|Block),data=Plots4)
-M3<-lmer(BAPERCM2~Year2+Collapse2+(1|Block),data=Plots4)
-M4<-lmer(BAPERCM2~Year2*Collapse2+(1|Block),data=Plots4)
-AICc(M1,M2,M3,M4)
-
+M1<-lmer(BAPERCM3~Year2+(Block|Year2),data=Plots4)
+M2<-lmer(BAPERCM3~Collapse2+(Block|Year2),data=Plots4)
+M3<-lmer(BAPERCM3~Year2+Collapse2+(Block|Year2),data=Plots4)
+M4<-lmer(BAPERCM3~Year2*Collapse2+(Block|Year2),data=Plots4)
+AICc(M1,M2,M3,M4,M0.2)
+plot(M4)
 
 
 r.squaredGLMM(M4)
 
 #put in predictions
-Plots4$Preds<-((plogis(predict(M4,re.form=NA)))*4)-1
+Plots4$Preds<-((plogis(predict(M4,re.form=NA)))*3.3)-2.2
 #put in different marker of collapse
 Plots4$Collapse3<-ifelse(Plots4$Collapse2==1,"Collapsed","Stable/Increasing")
 
 
 #plot basal area time series
 theme_set(theme_bw(base_size=12))
-BA_Coll1<-ggplot(Plots4,aes(x=Year,y=BAPERCM*100,group=Block))+geom_point(shape=1,size=2,alpha=0.3)+geom_line(alpha=0.3)+facet_wrap(~Collapse3)
+BA_Coll1<-ggplot(Plots4,aes(x=Year,y=BAPERCM2*100,group=Block))+geom_point(shape=1,size=2,alpha=0.3)+geom_line(alpha=0.3)+facet_wrap(~Collapse3)
 BA_Coll2<-BA_Coll1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-BA_Coll2+geom_line(data=Plots4,aes(x=Year,y=Preds*100,group=NULL),size=2)+ylab("Percentage change in plot basal area relative to 1964")+xlim(c(1964,2015))
+BA_Coll2+geom_line(data=Plots4,aes(x=Year,y=Preds*100,group=NULL),size=2)+ylab("Percentage loss in plot basal area relative to 1964")+xlim(c(1964,2015))
 ggsave("Figures/Collapse_BA_TS.png",width = 8,height=6,units = "in",dpi=300)
 
