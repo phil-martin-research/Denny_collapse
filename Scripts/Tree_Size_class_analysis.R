@@ -80,23 +80,25 @@ ggplot(Trees_BA_Size3,aes(x=Year,y=BA_Change,group=Block))+geom_point()+facet_wr
 Trees_BA_Size4<-subset(Trees_BA_Size3,Year>1964)
 Trees_BA_Size4$BA_Change2<-Trees_BA_Size4$BA_Change*(-1)
 Trees_BA_Size4$BAPERCM2<-Trees_BA_Size4$BAPERCM*(-1)
-Trees_BA_Size4$BAPERCM3<-qlogis((Trees_BA_Size4$BAPERCM+1)/3.2)
+Trees_BA_Size4$BAPERCM3<-qlogis((Trees_BA_Size4$BAPERCM2+2.17)/3.2)
+
+summary(Trees_BA_Size4$BAPERCM2+2.17)
 
 #now model this
 #first a null model
 #first for trees <15cm
 Trees_BA_Size_15<-subset(Trees_BA_Size4,Size_Class==15)
 
-M0_15<-lmer(BAPERCM~1+(1|Block),data=Trees_BA_Size_15)
+M0_15<-lmer(BAPERCM3~1+(1|Block),data=Trees_BA_Size_15)
 plot(M0_15)
-M1_15<-lmer(BAPERCM~BA_Change+(1|Block),data=Trees_BA_Size_15)
+M1_15<-lmer(BAPERCM3~BA_Change+(1|Block),data=Trees_BA_Size_15)
 plot(M1_15)
 r.squaredGLMM(M1_15)
 AICc(M0_15,M1_15)
 #second model marginally better
 #now plot this
-plot(Trees_BA_Size_15$BA_Change,Trees_BA_Size_15$BAPERCM)
-points(Trees_BA_Size_15$BA_Change,predict(M0_15,re.form = NA),col="red")
+plot(Trees_BA_Size_15$BA_Change,Trees_BA_Size_15$BAPERCM2)
+points(Trees_BA_Size_15$BA_Change,((plogis(predict(M0_15,re.form = NA)))*3.2)-2.17,col="red")
 
 #next for trees <25cm
 Trees_BA_Size_25<-subset(Trees_BA_Size4,Size_Class==25)
@@ -108,8 +110,8 @@ r.squaredGLMM(M1_25)
 AICc(M0_25,M1_25)
 #null model is better
 #now plot this
-plot(Trees_BA_Size_25$BA_Change,Trees_BA_Size_25$BAPERCM3)
-points(Trees_BA_Size_25$BA_Change,predict(M0_25,re.form = NA),col="red")
+plot(Trees_BA_Size_25$BA_Change,Trees_BA_Size_25$BAPERCM2)
+points(Trees_BA_Size_25$BA_Change,((plogis(predict(M0_25,re.form = NA)))*3.2)-2.17,col="red")
 
 
 #next for trees <45cm
@@ -122,8 +124,8 @@ r.squaredGLMM(M1_45)
 AICc(M0_45,M1_45)
 #null model is better
 #now plot this
-plot(Trees_BA_Size_45$BA_Change,Trees_BA_Size_45$BAPERCM3)
-points(Trees_BA_Size_45$BA_Change,predict(M0_45,re.form = NA),col="red")
+plot(Trees_BA_Size_45$BA_Change,Trees_BA_Size_45$BAPERCM2)
+points(Trees_BA_Size_45$BA_Change,((plogis(predict(M0_45,re.form = NA)))*3.2)-2.17,col="red")
 
 
 #next for trees >45cm
@@ -138,25 +140,26 @@ r.squaredGLMM(M2_150)
 AICc(M0_150,M1_150,M2_150)
 #model 1 is better
 #now plot this
-plot(Trees_BA_Size_150$BA_Change,Trees_BA_Size_150$BAPERCM3)
-points(Trees_BA_Size_150$BA_Change,predict(M2_150,re.form = NA),col="red")
+plot(Trees_BA_Size_150$BA_Change,Trees_BA_Size_150$BAPERCM2)
+points(Trees_BA_Size_150$BA_Change,((plogis(predict(M2_150,re.form = NA)))*3.2)-2.17,col="red")
 
 
-Trees_BA_Size_150$predictions<-as.vector(predict(M1_150,re.form = NA))
+Trees_BA_Size_150$predictions<-as.vector(predict(M2_150,re.form = NA))
 Trees_BA_Size_15$predictions<-as.vector(predict(M1_15,re.form = NA))
-Trees_BA_Size_25$predictions<-(-0.1046998)
+Trees_BA_Size_25$predictions<-1.088
 Trees_BA_Size_45$predictions<-as.vector(predict(M0_45,re.form = NA))
 
 
 Trees_BA_Size5<-NULL
 Trees_BA_Size5<- rbind.fill(list(Trees_BA_Size_15,Trees_BA_Size_25,Trees_BA_Size_45,Trees_BA_Size_150))
+Trees_BA_Size5$predictions2<-((plogis(Trees_BA_Size5$predictions))*3.2)-2.17
 
-ggplot(Trees_BA_Size5,aes(x=BAPERCM,y=predictions))+geom_point()+facet_wrap(~Size_reclass)
+ggplot(Trees_BA_Size5,aes(x=BA_Change,y=predictions))+geom_point()+facet_wrap(~Size_reclass)
 
 #and now predictions using all different models
 theme_set(theme_bw(base_size=12))
-Size_class_plot<-ggplot(Trees_BA_Size5,aes(x=BAPERCM*100,y=BA_Change*100,group=Block))+geom_point(shape=1)+facet_wrap(~Size_reclass,scales = "free_y")+geom_line(data=Trees_BA_Size5,aes(x=BAPERCM*100,y=predictions*100,group=NULL))
+Size_class_plot<-ggplot(Trees_BA_Size5,aes(y=BAPERCM2*100,x=BA_Change*100,group=Block))+geom_point(shape=1)+facet_wrap(~Size_reclass,scales = "free_y")+geom_line(data=Trees_BA_Size5,aes(x=BA_Change*100,y=predictions2*100,group=NULL))
 Size_class_plot2<-Size_class_plot+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-Size_class_plot2+xlab("Total basal area percentage change since 1964")+ylab("Basal area percentage change since 1964 for tree size class")
+Size_class_plot2+ylab("Percentage total basal area loss since 1964")+xlab("Percentage basal area change since 1964 for tree size class")+xlim(c(-100,200))+ylim(c(-100,100))
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("Collapse_Size_class_gradient.png",width = 8,height=6,units = "in",dpi=300)
