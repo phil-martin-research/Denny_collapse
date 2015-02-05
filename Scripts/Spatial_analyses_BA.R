@@ -18,12 +18,56 @@ library(car)
 #save all this as a csv
 Plots<-read.csv("Data/BA_gradient_spatial.csv")
 
-head(Plots)
+head(Plots2)
 
-Plots2<-subset(Plots,Block<51)
+Plots$Transect<-ifelse(Plots$Block>=51,"Undenclosed","Enclosed")
+Plots$Collapsed_adj3<-ifelse(Plots$Collapsed_adj==1,"Collapsed","Stable")
+Plots$Collapsed_adj4<-ifelse(Plots$Collapsed_adj2==1,"Collapsed","Stable")
+for (i in 1:nrow(Plots)){
+  Plots$Year[i]<-ifelse(Plots$Year[i]==1996,1999,Plots$Year[i])
+}
 
-ggplot(Plots,aes(x=as.factor(Collapsed_adj),y=Collapsed))+geom_boxplot()+facet_wrap(~Year)
+
+ggplot(Plots,aes(x=as.factor(Collapsed_adj),y=Collapsed))+geom_boxplot()+facet_grid(Year~Transect)
 
 
-M1<-lmer(BAPERCM~BA_prev_adj+(1|Block),data=Plots)
 
+Plots2<-subset(Plots,Transect=="Enclosed")
+Plots2<-subset(Plots2,Year>1984)
+Plots2<-subset(Plots2, !is.na(Collapsed_adj))
+
+
+
+
+ggplot(Plots2,aes(x=as.factor(Collapsed_adj),y=Collapsed))+geom_boxplot()+facet_wrap(~Year)
+ggplot(Plots2,aes(x=as.factor(Collapsed_adj2),y=Collapsed))+geom_boxplot()+facet_wrap(~Year)+xlab("Status of adjacent plots")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+scale_y_continuous(breaks=1:0)
+ggsave("Figures/Adjacent_collapse.png",width = 8,height=6,units = "in",dpi=300)
+
+#produce a different way of plotting this data
+
+
+Plots3<-ddply(Plots2,.(Collapsed,Collapsed_adj3,Year),summarise,sum=sum(Collapsed),mean=mean(Collapsed),median=median(Collapsed),freq=length(Collapsed))
+Plots4<-ddply(Plots2,.(Collapsed_adj3,Year),summarise,sum=sum(Collapsed),mean=mean(Collapsed),median=median(Collapsed))
+
+
+Adj_plot1<-ggplot(Plots3,aes(x=Collapsed_adj3,y=Collapsed))+geom_point(aes(size=freq),shape=15)+facet_wrap(~Year)
+Adj_plot1+geom_point(data=Plots4,aes(y=mean),shape=15,size=4,colour="red")+xlab("Status of adjacent plots")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+scale_y_continuous(breaks=1:0)+ theme(legend.position="none")
+ggsave("Figures/Adjacent_collapse2.png",width = 8,height=6,units = "in",dpi=300)
+
+
+#and now are plots that are collapsed more likley to be next to other plots that have collapsed
+Plots3<-ddply(Plots,.(Collapsed,Collapsed_adj4,Year),summarise,sum=sum(Collapsed),mean=mean(Collapsed),median=median(Collapsed),freq=length(Collapsed))
+Plots4<-ddply(Plots,.(Collapsed_adj4,Year),summarise,sum=sum(Collapsed),mean=mean(Collapsed),median=median(Collapsed))
+
+
+Adj_plot1<-ggplot(Plots3,aes(x=Collapsed_adj4,y=Collapsed))+geom_point(aes(size=freq),shape=15)+facet_wrap(~Year)
+Adj_plot1+geom_point(data=Plots4,aes(y=mean),shape=15,size=4,colour="red")+xlab("Status of adjacent plots")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+scale_y_continuous(breaks=1:0)+ theme(legend.position="none")
+ggsave("Figures/Adjacent_collapse3.png",width = 8,height=6,units = "in",dpi=300)
+
+
+M1<-glmer(Collapsed~as.factor(Collapsed_adj)+(1|Block),data=Plots2,family="binomial")
+M1<-glmer(Collapsed~Collapsed_adj4*Year+(1|Block),data=Plots2,family="binomial")
+
+summary(M1)
+
+r.squaredGLMM(M1)
