@@ -84,13 +84,16 @@ AICc(M0.1,M1,M2,M3)
 
 #create model to look at whether collapsed plots are more likley to be found next 
 #to other collapsed plots
-M0.1<-glmer(Collapsed~1+(1|Block),data=Plots2,family="binomial")
-M0.2<-glmer(Collapsed~1+(Block|Year),data=Plots2,family="binomial")
+M0.1<-glmer(Collapsed~1+(1|Block),data=Plots,family="binomial")
+M0.2<-glmer(Collapsed~1+(Block|Year),data=Plots,family="binomial")
 AICc(M0.1,M0.2)
 
-M1<-glmer(Collapsed~Collapsed_adj4+(1|Block),data=Plots2,family="binomial")
-M2<-glmer(Collapsed~Collapsed_adj4+as.factor(Year)+(1|Block),data=Plots2,family="binomial")
-M3<-glmer(Collapsed~Collapsed_adj4*as.factor(Year)+(1|Block),data=Plots2,family="binomial")
+M1<-glmer(Collapsed~Collapsed_adj4+(1|Block),data=Plots,family="binomial")
+M2<-glmer(Collapsed~Collapsed_adj4+as.factor(Year)+(1|Block),data=Plots,family="binomial")
+M3<-glmer(Collapsed~Collapsed_adj4*as.factor(Year)+(1|Block),data=Plots,family="binomial")
 AICc(M0.1,M1,M2,M3)
 
+r.squaredGLMM(M2)
+
+summary(M2)
 
