@@ -14,6 +14,7 @@ library(nlme)
 library(MuMIn)
 library(quantreg)
 library(car)
+library(arm)
 
 #save all this as a csv
 Plots<-read.csv("Data/BA_gradient_spatial.csv")
@@ -64,10 +65,32 @@ Adj_plot1<-ggplot(Plots3,aes(x=Collapsed_adj4,y=Collapsed))+geom_point(aes(size=
 Adj_plot1+geom_point(data=Plots4,aes(y=mean),shape=15,size=4,colour="red")+xlab("Status of adjacent plots")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+scale_y_continuous(breaks=1:0)+ theme(legend.position="none")
 ggsave("Figures/Adjacent_collapse3.png",width = 8,height=6,units = "in",dpi=300)
 
+#create model to look at whether plots that have not collapsed are more likely 
+#to have collapsed by the next time point when they are next to a collapsed plot
 
-M1<-glmer(Collapsed~as.factor(Collapsed_adj)+(1|Block),data=Plots2,family="binomial")
-M1<-glmer(Collapsed~Collapsed_adj4*Year+(1|Block),data=Plots2,family="binomial")
+#first a null model
+M0.1<-glmer(Collapsed~1+(1|Block),data=Plots2,family="binomial")
+M0.2<-glmer(Collapsed~1+(Block|Year),data=Plots2,family="binomial")
+AICc(M0.1,M0.2)
 
-summary(M1)
+#use first set of random effects
+M1<-glmer(Collapsed~Collapsed_adj3+(1|Block),data=Plots2,family="binomial")
+M2<-glmer(Collapsed~Collapsed_adj3+as.factor(Year)+(1|Block),data=Plots2,family="binomial")
+M3<-glmer(Collapsed~Collapsed_adj3*as.factor(Year)+(1|Block),data=Plots2,family="binomial")
+AICc(M0.1,M1,M2,M3)
 
-r.squaredGLMM(M1)
+#the null model is best
+
+
+#create model to look at whether collapsed plots are more likley to be found next 
+#to other collapsed plots
+M0.1<-glmer(Collapsed~1+(1|Block),data=Plots2,family="binomial")
+M0.2<-glmer(Collapsed~1+(Block|Year),data=Plots2,family="binomial")
+AICc(M0.1,M0.2)
+
+M1<-glmer(Collapsed~Collapsed_adj4+(1|Block),data=Plots2,family="binomial")
+M2<-glmer(Collapsed~Collapsed_adj4+as.factor(Year)+(1|Block),data=Plots2,family="binomial")
+M3<-glmer(Collapsed~Collapsed_adj4*as.factor(Year)+(1|Block),data=Plots2,family="binomial")
+AICc(M0.1,M1,M2,M3)
+
+
