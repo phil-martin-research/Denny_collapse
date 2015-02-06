@@ -15,6 +15,7 @@ library(MuMIn)
 library(quantreg)
 library(car)
 library(arm)
+library(lmerTest)
 
 #save all this as a csv
 Plots<-read.csv("Data/BA_gradient_spatial.csv")
@@ -91,9 +92,34 @@ AICc(M0.1,M0.2)
 M1<-glmer(Collapsed~Collapsed_adj4+(1|Block),data=Plots,family="binomial")
 M2<-glmer(Collapsed~Collapsed_adj4+as.factor(Year)+(1|Block),data=Plots,family="binomial")
 M3<-glmer(Collapsed~Collapsed_adj4*as.factor(Year)+(1|Block),data=Plots,family="binomial")
-AICc(M0.1,M1,M2,M3)
+M4<-glmer(Collapsed~Collapsed_adj4*I(Year-1964)+(1|Block),data=Plots,family="binomial")
+M5<-glmer(Collapsed~Collapsed_adj4+I(Year-1964)+(1|Block),data=Plots,family="binomial")
+AICc(M0.1,M1,M2,M3,M4,M5)
 
 r.squaredGLMM(M2)
 
-summary(M2)
+newdat<-expand.grid(Collapsed=0,Collapsed_adj4=c("Collapsed","Stable"),Year=c(1984,1988,1999,2014))
+
+mm <- model.matrix(terms(M3),newdat)
+newdat$distance <- mm %*% fixef(M3)
+pvar1 <- diag(mm %*% tcrossprod(vcov(M3),mm))
+tvar1 <- pvar1+VarCorr(M3)$Block[1]  ## must be adapted for more complex models
+newdat <- data.frame(
+  newdat
+  , plo = newdat$distance-2*sqrt(pvar1)
+  , phi = newdat$distance+2*sqrt(pvar1)
+  , tlo = newdat$distance-2*sqrt(tvar1)
+  , thi = newdat$distance+2*sqrt(tvar1)
+)
+
+
+newdat$Pred<-invlogit(predict(M2,newdata = newdat,re.form=NA))
+newdat$plo2<-invlogit(newdat$plo)
+newdat$phi2<-invlogit(newdat$phi)
+
+
+theme_set(theme_bw(base_size=12))
+Adj_plot1<-ggplot(Plots3,aes(x=Collapsed_adj4,y=Collapsed))+geom_point(aes(size=freq),shape=0)+facet_wrap(~Year)
+Adj_plot1+geom_pointrange(data=newdat,aes(y=Pred,ymax=phi2,ymin=plo2),shape=15,colour="red")+xlab("Status of adjacent plots")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+scale_y_continuous(breaks=1:0)+ theme(legend.position="none")
+ggsave("Figures/Adjacent_collapse3.png",width = 8,height=6,units = "in",dpi=300)
 
