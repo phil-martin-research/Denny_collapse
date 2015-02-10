@@ -18,6 +18,10 @@ library(MASS)
 library(vegan)
 library(TR8)
 
+citation("lme4")
+citation("MuMIn")
+
+
 #import data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 Location<-read.csv("Plot_coords.csv")
@@ -25,7 +29,11 @@ Location<-unique(Location[,c(3,5:6)])
 Trees<-read.csv("Denny_trees_cleaned.csv")
 #subset trees to give only those inside plots that are alive and plots that have been surveyed in 1964
 Trees<-subset(Trees,In_out=="In")
+
+ggplot(Trees,aes(x=Easting,y=Northing,colour=as.factor(Status),size=DBH))+geom_point(shape=1)+facet_grid(Status~Year)
 Trees<-subset(Trees,Year>=1964)
+Trees<-subset(Trees,Year>=1964)
+
 Trees<-subset(Trees,Status==1)
 Trees<-subset(Trees,Block!=25)
 Trees<-subset(Trees,Block!=26)
