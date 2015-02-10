@@ -71,3 +71,44 @@ theme_set(theme_bw(base_size=12))
 Fungi_plot1<-ggplot(BA_fungi2,aes(x=BAPERCM,y=Sp_rich))+geom_point(shape=1,size=3)+geom_line(data=BA_fungi2,aes(y=Preds))+geom_ribbon(data=BA_fungi2,aes(ymax=UCI,ymin=LCI,y=NULL),fill="blue",alpha=0.2)
 Fungi_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+ylab("Fungi species richness")+xlab("Percentage loss of basal area since 1964")
 ggsave("Figures/Fungi_rich.png",width = 8,height=6,units = "in",dpi=300)
+
+#now do it using categorical methods
+
+Groups<-data.frame(max=c(-0.75,-0.50,-0.25,0,3),min=c(-1.00,-0.75,-0.50,-0.25,0),group=c("75-100%","50-75%","25-50%","0-25%","Stable/Increasing"),numbers=c(5,4,3,2,1))
+head(BA_fungi)
+BA_groups<-NULL
+for(i in 1:nrow(Groups)){
+  BA2<-subset(BA_fungi,BA_fungi$BAPERCM>Groups[i,2]&BA_fungi$BAPERCM<Groups[i,1])
+  BA2$Group<-Groups[i,3]
+  BA2$Numbers<-Groups[i,4]
+  BA_groups<-rbind(BA_groups,BA2)
+}
+
+factor(d$Team1, c("Cowboys", "Giants", "Eagles", "Redskins"))
+
+BA_groups$Group2<-factor(BA_groups$Group, c("Stable/Increasing", "0-25%", "25-50%", "50-75%","75-100%"))
+
+
+theme_set(theme_bw(base_size=12))
+Fungi_plot1<-ggplot(BA_groups,aes(x=Group2,y=Sp_rich))+geom_boxplot()+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+Fungi_plot1+ylab("Fungi species richness")+xlab("Collapse group")
+ggsave("Figures/Fungi_rich_cat.png",width = 8,height=6,units = "in",dpi=300)
+
+#model this
+#now test the relationship
+M0<-lm(Sp_rich~1,data=BA_groups)
+M1<-lm(Sp_rich~Group2,data=BA_groups)
+summary(M1)
+
+par(mfrow=c(2,2))
+
+plot(M0)
+plot(M1)
+
+AICc(M0,M1)
+
+par(mfrow=c(1,1))
+plot(BA_fungi2$BAPERCM,BA_fungi2$Sp_rich)
+points(BA_fungi2$BAPERCM,predict(M2))
+
+
