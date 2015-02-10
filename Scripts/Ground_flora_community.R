@@ -16,10 +16,9 @@ library(quantreg)
 library(car)
 
 #load in data
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
-BA<-read.csv("Denny_plots.csv")
-GF<-read.csv("GF_ab_nw.csv")
-Grass<-read.csv("Reclass_grass.csv")
+BA<-read.csv("Data/Denny_plots.csv")
+GF<-read.csv("Data/GF_ab_nw.csv")
+Grass<-read.csv("Data/Reclass_grass.csv")
 
 #replace na with zeros in dataframe
 GF[is.na(GF)] <- 0
@@ -120,6 +119,7 @@ Grass_sel2<-subset(Grass_sel,delta<=7)
 
 Grass_avg<-model.avg(list(M1_G,M2_G,M3_G))
 
+
 Grass_pred_se<-predict(Grass_avg,se.fit=T)
 
 plot(Grass_ab$BAPERCM2,Grass_ab$PCC)
@@ -133,14 +133,15 @@ Grass_ab$pred<-(((plogis(Grass_pred_se$fit))*105)-4)
 Grass_ab$UCI<-(((plogis(Grass_pred_se$fit+(Grass_pred_se$se.fit*1.96)))*105)-4)
 Grass_ab$LCI<-(((plogis(Grass_pred_se$fit-(Grass_pred_se$se.fit*1.96)))*105)-4)
 
-
+#change symbols for plot to give different ones for enclosed andd unenclosed plots
+Grass_ab$Transect<-ifelse(Grass_ab$Block>=51,"Unenclosed","Enclosed")
 
 #plot this relationship
 theme_set(theme_bw(base_size=12))
 Grass_plot1<-ggplot(Grass_ab,aes(x=BAPERCM2*100,y=PCC,colour=as.factor(Year)))+geom_point(shape=1,size=3)
 Grass_plot2<-Grass_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-Grass_plot3<-Grass_plot2+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=pred,colour=NULL),alpha=0.8)+ylab("Percentage change in grass cover since 1964")+xlab("Percentage loss of basal area since 1964")
-Grass_plot3+scale_colour_brewer("Year",palette ="Set1")+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=UCI,colour=NULL),lty=2,alpha=0.8)+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=LCI,colour=NULL),lty=2,alpha=0.8)
+Grass_plot3<-Grass_plot2+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=pred,colour=NULL),alpha=0.8)+ylab("Increase in grass cover since 1964")+xlab("Percentage loss of basal area since 1964")
+Grass_plot3+scale_colour_brewer("Year",palette ="Set1")+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=UCI,colour=NULL),lty=2,alpha=0.8)+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=LCI,colour=NULL),lty=2,alpha=0.8)+xlim(-50,100)
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("Grass_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
 
