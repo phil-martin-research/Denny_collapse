@@ -123,3 +123,17 @@ Adj_plot1<-ggplot(Plots3,aes(x=Collapsed_adj4,y=Collapsed))+geom_point(aes(size=
 Adj_plot1+geom_pointrange(data=newdat,aes(y=Pred,ymax=phi2,ymin=plo2),shape=15,colour="red")+xlab("Status of adjacent plots")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+scale_y_continuous(breaks=1:0)+ theme(legend.position="none")
 ggsave("Figures/Adjacent_collapse3.png",width = 8,height=6,units = "in",dpi=300)
 
+
+#produce table for Adrian
+
+Plots_1<-ddply(Plots2,.(Collapsed,Collapsed_adj3,Year),summarise,Number_of_plots=length(Collapsed))
+Plots_2<-ddply(Plots,.(Collapsed,Collapsed_adj4,Year),summarise,Number_of_plots=length(Collapsed))
+
+Plots_1<-Plots_1[with(Plots_1, order(Year)), ]
+Plots_2<-Plots_2[with(Plots_2, order(Year)), ]
+colnames(Plots_1)<-c("Plot_status","Adjacent_plot_status","Year","Number_of_plots")
+colnames(Plots_2)<-c("Plot_status","Adjacent_plot_status","Year","Number_of_plots")
+
+write.csv(Plots_1,file="Figures/Plots_collapse1.csv",row.names = F)
+write.csv(Plots_2,file="Figures/Plots_collapse2.csv",row.names = F)
+
