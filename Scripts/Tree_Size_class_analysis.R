@@ -11,9 +11,8 @@ library(lme4)
 library(MuMIn)
 
 #load in data
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
-Trees<-read.csv("Denny_trees_cleaned.csv")
-BA<-read.csv("BA_Gradient.csv")
+Trees<-read.csv("Data/Denny_trees_cleaned.csv")
+BA<-read.csv("Data/BA_Gradient.csv")
 
 #remove dead trees
 Trees_live<-subset(Trees,Status==1)
