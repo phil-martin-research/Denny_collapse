@@ -37,7 +37,23 @@ Stem_density_Size<-count(Trees_M_Size,var=c("Block","Year","Size_Class"))
 
 Stem_density_Size2<-merge(Stem_density_Size,BA,by=c("Block","Year"))
 
-head(Stem_density_Size2)
+Trees_M$Year<-ifelse(Trees_M$Year==1996,1999,Trees_M$Year)
+
+Coomes<-ddply(Trees_M,.(Year),summarise,SD=length(DBH),BA=(mean(DBH^2*(pi/4))/400)*10)
+Coomes<-subset(Coomes,Year>1960)
+head(Coomes)
+
+Coomes_plot1<-ggplot(Coomes,aes(x=BA,y=SD,colour=as.factor(Year)))+geom_point(size=10)+geom_segment(aes(xend=c(tail(BA, n=-1), NA), yend=c(tail(SD, n=-1), NA)),
+                                                       arrow=arrow(length=unit(0.3,"cm")),colour="black",alpha=0.8)
+Coomes_plot1
+
+#plot changes in SD
+SD_plot1<-ggplot(Coomes,aes(x=Year,y=SD,group=Block))+geom_point()+geom_line()
+SD_plot1
+
+SD_plot1<-ggplot(Coomes,aes(x=Year,y=BA,group=Block))+geom_point()+geom_line()
+SD_plot1+facet_wrap(~Block)
+
 
 #plot this relationship
 ggplot(Stem_density_Size2,aes(x=BAPERCM,y=freq,group=Block))+geom_point()+facet_wrap(~Size_Class)+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
