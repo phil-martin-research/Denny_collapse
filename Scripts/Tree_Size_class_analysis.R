@@ -18,6 +18,8 @@ BA<-read.csv("Data/BA_Gradient.csv")
 Trees_live<-subset(Trees,Status==1)
 #remove trees <10cm
 Trees_M<-subset(Trees_live,DBH>10)
+Trees_M<-subset(Trees_live,Year>1960)
+Trees_M$Year<-ifelse(Trees_M$Year==1996,1999,Trees_M$Year)
 
 #create a loop to classify trees into different size classes into quantiles
 quantile(Trees_M$DBH)
@@ -31,33 +33,6 @@ for (i in 2:nrow(Size_class)){
   Trees_M_Size<-rbind(Tree_subset,Trees_M_Size)
 }
 
-head(Trees_M_Size)
-#create count of stems in certain size classes
-Stem_density_Size<-count(Trees_M_Size,var=c("Block","Year","Size_Class"))
-
-Stem_density_Size2<-merge(Stem_density_Size,BA,by=c("Block","Year"))
-
-Trees_M$Year<-ifelse(Trees_M$Year==1996,1999,Trees_M$Year)
-
-Coomes<-ddply(Trees_M,.(Year),summarise,SD=length(DBH),BA=(mean(DBH^2*(pi/4))/400)*10)
-Coomes<-subset(Coomes,Year>1960)
-head(Coomes)
-
-Coomes_plot1<-ggplot(Coomes,aes(x=BA,y=SD,colour=as.factor(Year)))+geom_point(size=10)+geom_segment(aes(xend=c(tail(BA, n=-1), NA), yend=c(tail(SD, n=-1), NA)),
-                                                       arrow=arrow(length=unit(0.3,"cm")),colour="black",alpha=0.8)
-Coomes_plot1
-
-#plot changes in SD
-SD_plot1<-ggplot(Coomes,aes(x=Year,y=SD,group=Block))+geom_point()+geom_line()
-SD_plot1
-
-SD_plot1<-ggplot(Coomes,aes(x=Year,y=BA,group=Block))+geom_point()+geom_line()
-SD_plot1+facet_wrap(~Block)
-
-
-#plot this relationship
-ggplot(Stem_density_Size2,aes(x=BAPERCM,y=freq,group=Block))+geom_point()+facet_wrap(~Size_Class)+geom_smooth(se=F,colour="blue",size=3,method="lm",aes(group=NULL))
-
 #now work out the basal area of trees in each size class
 for (i in 1:nrow(Trees_M_Size)){
   Trees_M_Size$BA[i]<-ifelse(Trees_M_Size$DBH[i]>10,(Trees_M_Size$DBH[i]^2*(pi/4))/400,0)
@@ -65,6 +40,12 @@ for (i in 1:nrow(Trees_M_Size)){
 
 Trees_BA_Size<-ddply(Trees_M_Size,.(Block,Year,Size_Class),summarise,T_BA=sum(BA))
 Trees_BA_Size2<-merge(Trees_BA_Size,BA,by=c("Block","Year"))
+
+Trees_BA_Size3<-ddply(Trees_M_Size,.(Block,Year,Size_Class),summarise,T_BA=mean(BA))
+
+ggplot(Trees_BA_Size3, aes(x=Year, y=T_BA,fill=Size_Class)) + geom_bar(stat='identity')+facet_wrap(~Block)
+
+
 
 #now loop through to calculate proportional change in basal area for each size class
 Trees_unique<-unique(Trees_BA_Size2[,c("Block","Size_Class")])
