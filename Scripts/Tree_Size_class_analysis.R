@@ -22,7 +22,7 @@ Trees_M<-subset(Trees_live,Year>1960)
 Trees_M$Year2<-as.character(Trees_M$Year)
 Trees_M$Year2<-ifelse(Trees_M$Year==1996,"1996/9",Trees_M$Year2)
 Trees_M$Year2<-ifelse(Trees_M$Year==1999,"1996/9",Trees_M$Year2)
-Trees_M$BA<-(Trees_M$DBH^2*(pi/4))
+Trees_M$BA<-(Trees_M$DBH^2*(pi/4))/400
 Trees_M$BA2<-(Trees_M$DBH^2)*0.0007854
 plot(Trees_M$BA,Trees_M$BA2)
 
@@ -52,6 +52,7 @@ keeps<-c("DBH","Year.y","Year2","Collapse2","Block","BA","BA2")
 head(Trees_blocks)
 Tree_collapse<-Trees_blocks[keeps]
 
+#remove data for years I'm not interested in (1984/88)
 Tree_collapse<-subset(Tree_collapse,Year.y!=1984&Year.y!=1988)
 Tree_collapse<-subset(Tree_collapse,DBH>10)
 Tree_collapse<-subset(Tree_collapse,!is.na(Collapse2))
@@ -72,7 +73,6 @@ for (i in 1:nrow(Size_class)){
 Tree_class$Size_class<-factor(Tree_class$Size_class, c("10-20","20-30","30-40","40-50","50-60","60-70","70-80","80-90","90-100",">100"))
 
 #now do a count of the stem number for collapsed and uncollapsed plots over time
-
 CU_change<-ddply(Tree_class,.(Collapse2,Year2,Size,Size_class),summarize,BA=sum(BA2),N=length(BA2))
 head(CU_change)
 Coll_Change<-NULL
@@ -84,7 +84,7 @@ for (i in 1:nrow(Block_size)){
   Change_sub$BA_Change<-log(Change_sub$BA)-log(Change_sub$BA[1])
   Coll_Change<-rbind(Change_sub,Coll_Change)
 }
-
+#remove 1964 for plotting
 Coll_Change2<-subset(Coll_Change,Year2!="1964")
 
 #plot change in SD
@@ -92,83 +92,28 @@ Coll_Change2$Collapse3<-ifelse(Coll_Change2$Collapse2==1,"Collapsed","Stable")
 theme_set(theme_bw(base_size=12))
 SD_plot1<-ggplot(Coll_Change2,aes(x=Size_class,y=(exp(N_Change)-1)*100))+geom_bar(stat="identity")+facet_grid(Collapse3~Year2)+geom_hline(x=0,lty=2)
 SD_plot2<-SD_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-SD_plot2+xlab("DBH size class (cm)")+ylab("Percentage change in stem density since 1964")+ theme(axis.text.x=element_text(angle = -90, hjust = 0))
+SD_plot2+xlab("DBH size class (cm)")+ylab("Percentage change in stem density since 1964")+ theme(axis.text.x=element_text(angle = -90, hjust = 0,vjust = 0))
 ggsave("Figures/SD_Size_Change.png",width = 8,height=6,units = "in",dpi=300)
 
 
-Tree_class2<-subset(Tree_class,DBH>10)
+#create a loop for all trees in 1964
+#order them from lowest DBh to highest
+#and then produce a cumulative sum
+Trees_1964<-subset(Tree_collapse,Year.y==1964)
+BA_Sum<-sum(Trees_1964$BA2)
+Trees_1964<-Trees_1964[with(Trees_1964, order(DBH)), ]
+Trees_1964$Cum_Total<-NA
+Trees_1964$Cum_Total[1]<-Trees_1964$BA2[1]
+Trees_1964$Cum_Prop<-NA
+Trees_1964$Cum_Prop[1]<-Trees_1964$BA2[1]/BA_Sum
 
-sum(Tree_class2$BA)
-
-Tree_class$ID<-rownames(Tree_class2)
-
-DBH_BA<- ddply(Tree_class, .(ID), summarize,
-                      DBH = unique(DBH),
-                      ecdf = ecdf(BA2)(unique(ID))*length(ID))
-head(DBH_BA)
-
-?ecdf
-
-BA_Class<-ddply(Tree_class,.(Collapse2,Year2,Size,No,Block),summarise,N=length(Block),BA=sum(BA))
-BA_Class$BA2<-BA_Class$BA/(BA_Class$No*400)
-BA_Class$N2<-BA_Class$N*((BA_Class$No*400)/10000)
-BA_Class$Year<-BA_Class$Year2
-head(BA_Class)
-
-
-#create a plot to show the percentage basal area change for different size classes over time
-
-#first create a loop to give a dataframe with numbers for each size class for each block for each year
-BA_Change<-NULL
-Block_size<-unique(BA_Class[c("Block", "Size","Year2")])
-
-head(Block_size)
-
-Size_grid<-expand.grid(Block=unique(Block_size$Block),Size=unique(Block_size$Size),Year=unique(Block_size$Year2))
-Size_grid$BA<-NA
-for (i in 1:nrow(Size_grid)){
-  Block_sub<-subset(BA_Class,Block==Size_grid$Block[i])
-  Block_sub<-subset(Block_sub,Size==Size_grid$Size[i])
-  Block_sub<-subset(Block_sub,Year2==Size_grid$Year[i])
-  if (nrow(Block_sub)==0){
-    Size_grid$BA[i]<-0
-    Size_grid$N[i]<-0
-  } else {
-    Size_grid$BA[i]<-Block_sub$BA2
-    Size_grid$N[i]<-Block_sub$N
-  }
+for (i in 2:nrow(Trees_1964)){
+  Trees_1964$Cum_Total[i]<-Trees_1964$Cum_Total[i-1]+Trees_1964$BA2[i]
+  Trees_1964$Cum_Prop[i]<-Trees_1964$Cum_Total[i]/BA_Sum
 }
-    
-head(BA_class)
 
-keeps<-c("Collapse2","Year","Block","Size")
-
-BA_class2<-BA_Class[keeps]
-head(Size_grid)
-head(BA_class2)
-
-Size_grid<-merge(BA_class2,Size_grid,by=c("Block","Year","Size"))
-
-#now create a loop comparing each block and size class to itself
-Block_change<-NULL
-Block_size<-unique(Size_grid[c("Block", "Size")])
-for (i in 1:nrow(Block_size)){
-  Block_sub<-subset(Size_grid,Block==Block_size$Block[i])
-  Block_sub<-subset(Block_sub,Size==Block_size$Size[i])
-  Block_sub$N_Raw<-Block_sub$N-Block_sub$N[1]
-  Block_sub$BA_Raw<-Block_sub$BA-Block_sub$BA[1]
-  Block_sub$N_Perc<-(Block_sub$N-Block_sub$N[1])/Block_sub$N[1]
-  Block_sub$BA_Perc<-(Block_sub$BA-Block_sub$BA[1])/Block_sub$BA[1]
-  Block_change<-rbind(Block_change,Block_sub)
-}
-summary(Block_change)
-
-Block_change_Sum<-ddply(Block_change,.(Year,Collapse2,Size),summarize,BA=mean(BA_Perc),N=mean(N_Perc))
-  
-Block_change_Sum2<-subset(Block_change_Sum,Year>1964)
-
-ggplot(Block_change_Sum2,aes(x=Size,y=N,colour=Year))+geom_point()+facet_wrap(~Collapse2)
-ggplot(Block_change,aes(x=as.factor(Size),y=BA_Perc,colour=Collapse2))+geom_boxplot()+facet_grid(Collapse2~Year)
-
-
-
+#plot cumulative basal area over DBH
+theme_set(theme_bw(base_size=12))
+BA_Cumplot1<-ggplot(Trees_1964,aes(x=DBH,y=Cum_Prop*100))+geom_line()+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+BA_Cumplot1+xlim(10,150)+scale_x_continuous(breaks=c(10,40,80,120,150))+xlab("Tree DBH")+ylab("Percentage of total BA")+geom_rug(sides="b")
+ggsave("Figures/BA_cumulative.png",width = 8,height=6,units = "in",dpi=300)
