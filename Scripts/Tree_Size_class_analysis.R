@@ -117,3 +117,14 @@ theme_set(theme_bw(base_size=12))
 BA_Cumplot1<-ggplot(Trees_1964,aes(x=DBH,y=Cum_Prop*100))+geom_line()+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
 BA_Cumplot1+xlim(10,150)+scale_x_continuous(breaks=c(10,40,80,120,150))+xlab("Tree DBH")+ylab("Percentage of total BA")+geom_rug(sides="b")
 ggsave("Figures/BA_cumulative.png",width = 8,height=6,units = "in",dpi=300)
+
+#now work out what proportion of the declines were due to declines in stems >80cm
+
+
+#create factor to class trees as either over or under 50 cm DBH
+Tree_collapse$Over50<-ifelse(Tree_collapse$DBH>50,1,0)
+BA_loss50<-ddply(Tree_collapse,.(Over50,Year.y),summarize,BA=sum(BA2))
+
+#loss of BA from stems >50cm DBH accounts for 82% of losses in this case
+
+
