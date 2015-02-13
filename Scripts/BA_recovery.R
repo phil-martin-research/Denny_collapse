@@ -152,6 +152,7 @@ for (i in 1:nrow(Reclass)){
 Reclass_recovery$Count<-1
 
 
-Recovery_group<-ddply(Reclass_recovery, .(Group, Recovered), summarize,Mean_BA = round(mean(BAPERCM), 2),No_group = sum(Count))
+Recovery_group<-ddply(Reclass_recovery, .(Group, Recovered), summarize,Mean_BA = round(mean(BAPERCM*100), 2),SD_BA=sd(BAPERCM*100),No_group = sum(Count))
+Recovery_group$BA_SE<-Recovery_group$SD_BA/sqrt(Recovery_group$No_group)
 write.csv(Recovery_group,"Figures/Recovery_group.csv")
 
