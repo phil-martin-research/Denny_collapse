@@ -128,3 +128,26 @@ BA_loss50<-ddply(Tree_collapse,.(Over50,Year.y),summarize,BA=sum(BA2))
 #loss of BA from stems >50cm DBH accounts for 82% of losses in this case
 
 
+#now produce time series type analyses of change in stem density for each plot for different size classes
+quantile(Trees_M$DBH)
+
+#create a loop to classify trees by different size classes
+Trees_M_Size<-NULL
+Size_class<-data.frame(minimum=c(10,15,25,45,150))
+for (i in 2:nrow(Size_class)){
+  Tree_subset<-subset(Trees_M,DBH>Size_class$minimum[i-1])
+  head(Tree_subset)
+  Tree_subset<-subset(Tree_subset,DBH<Size_class$minimum[i])
+  Tree_subset$Size_Class<-Size_class$minimum[i]
+  Trees_M_Size<-rbind(Tree_subset,Trees_M_Size)
+}
+
+#now summarise this by block and year
+
+SD_class<-ddply(Trees_M_Size,.(Block,Year,Size_Class),summarise,SD=(length(DBH)*25))
+
+Trees_blocks<-merge(SD_class,Plots2,by=c("Block","Year"))
+head(Trees_blocks)
+ggplot(Trees_blocks,aes(x=Year,y=SD,group=Size_Class,colour=as.factor(Size_Class)))+geom_point()+facet_grid(Size_Class~Collapse2)+geom_smooth(se=F,size=3,method=lm,alpha=0.5)
+
+
