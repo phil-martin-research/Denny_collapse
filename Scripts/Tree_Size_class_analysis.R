@@ -144,10 +144,206 @@ for (i in 2:nrow(Size_class)){
 
 #now summarise this by block and year
 
-SD_class<-ddply(Trees_M_Size,.(Block,Year,Size_Class),summarise,SD=(length(DBH)*25))
+
+SD_class<-ddply(Trees_M_Size,.(Block,Year,Size_Class),summarise,SD=(length(DBH)*25),BA=sum(BA2)*400)
 
 Trees_blocks<-merge(SD_class,Plots2,by=c("Block","Year"))
 head(Trees_blocks)
 ggplot(Trees_blocks,aes(x=Year,y=SD,group=Size_Class,colour=as.factor(Size_Class)))+geom_point()+facet_grid(Size_Class~Collapse2)+geom_smooth(se=F,size=3,method=lm,alpha=0.5)
 
 
+#count the number of stems per plot
+Block_size<-unique(Trees_blocks[c("Block", "Size_Class","Year","Collapse2")])
+Size_grid<-expand.grid(Block=unique(Block_size$Block),Size_Class=unique(Block_size$Size_Class),Year=unique(Block_size$Year))
+Size_grid$SD<-NA
+for (i in 1:nrow(Size_grid)){
+  Block_sub1<-subset(Trees_blocks,Block==Size_grid$Block[i])
+  Block_sub2<-subset(Block_sub1,Size_Class==Size_grid$Size_Class[i])
+  Block_sub3<-subset(Block_sub2,Year==Size_grid$Year[i])
+  if (nrow(Block_sub3)==0){
+    Size_grid$SD[i]<-0
+    Size_grid$BA[i]<-0
+    } else {
+      Size_grid$SD[i]<-Block_sub3$SD
+      Size_grid$BA[i]<-Block_sub3$BA
+      }
+  Size_grid$Collapse[i]<-Block_sub1$Collapse2[1]
+}
+
+
+head(Size_grid)
+
+ggplot(Size_grid,aes(x=Year,y=SD,group=Size_Class,colour=as.factor(Size_Class)))+geom_point()+facet_grid(Size_Class~Collapse)+geom_smooth(size=2,method=lm,alpha=0.5)
+  
+#Rescale year for models
+Size_grid$Year2<-Size_grid$Year-mean(Size_grid$Year)
+
+#model of stem density change for different size classes over time
+#first look at small trees <15cm
+Size_grid15<-subset(Size_grid,Size_Class==15)
+
+SD_M0.1<-glmer(SD~1+(1|Block),data=Size_grid15,family=poisson)
+SD_M0.2<-glmer(SD~1+(Block|Year2),data=Size_grid15,family=poisson)
+plot(SD_M0.1)
+plot(SD_M0.2)
+AICc(SD_M0.1,SD_M0.2)
+#the first construction seems best
+
+#then does stem density change according to time and collapse
+
+SD_M1<-glmer(SD~Year2+(1|Block),data=Size_grid15,family=poisson)
+SD_M2<-glmer(SD~as.factor(Collapse)+(1|Block),data=Size_grid15,family=poisson)
+SD_M3<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid15,family=poisson)
+summary(SD_M3)
+
+plot(Size_grid15$Year,Size_grid15$SD)
+points(Size_grid15$Year,exp(predict(SD_M3,re.form = NA)),col="red")
+
+#do the same with 25
+Size_grid25<-subset(Size_grid,Size_Class==25)
+
+SD_M0.1<-glmer(SD~1+(1|Block),data=Size_grid25,family=poisson)
+SD_M0.2<-glmer(SD~1+(Block|Year2),data=Size_grid25,family=poisson)
+plot(SD_M0.1)
+plot(SD_M0.2)
+AICc(SD_M0.1,SD_M0.2)
+#the first construction seems best
+
+#then does stem density change according to time and collapse
+
+SD_M1<-glmer(SD~Year2+(1|Block),data=Size_grid25,family=poisson)
+SD_M2<-glmer(SD~as.factor(Collapse)+(1|Block),data=Size_grid25,family=poisson)
+SD_M3<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid25,family=poisson)
+r.squaredGLMM(SD_M3)
+
+plot(Size_grid25$Year,Size_grid25$SD)
+points(Size_grid25$Year,exp(predict(SD_M3,re.form = NA)),col="red")
+
+
+#do the same with 45
+Size_grid45<-subset(Size_grid,Size_Class==45)
+
+SD_M0.1<-glmer(SD~1+(1|Block),data=Size_grid45,family=poisson)
+SD_M0.2<-glmer(SD~1+(Block|Year2),data=Size_grid45,family=poisson)
+plot(SD_M0.1)
+plot(SD_M0.2)
+AICc(SD_M0.1,SD_M0.2)
+#the first construction seems best
+
+#then does stem density change according to time and collapse
+
+SD_M1<-glmer(SD~Year2+(1|Block),data=Size_grid45,family=poisson)
+SD_M2<-glmer(SD~as.factor(Collapse)+(1|Block),data=Size_grid45,family=poisson)
+SD_M3<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid45,family=poisson)
+AICc(SD_M1,SD_M2,SD_M3)
+r.squaredGLMM(SD_M3)
+
+plot(Size_grid45$Year,Size_grid45$SD)
+points(Size_grid45$Year,exp(predict(SD_M3,re.form = NA)),col="red")
+
+
+#do the same with large trees
+Size_grid150<-subset(Size_grid,Size_Class==150)
+
+SD_M0.1<-glmer(SD~1+(1|Block),data=Size_grid150,family=poisson)
+SD_M0.2<-glmer(SD~1+(Block|Year2),data=Size_grid150,family=poisson)
+plot(SD_M0.1)
+plot(SD_M0.2)
+AICc(SD_M0.1,SD_M0.2)
+#the first construction seems best
+
+#then does stem density change according to time and collapse
+
+SD_M1<-glmer(SD~Year2+(1|Block),data=Size_grid150,family=poisson)
+SD_M2<-glmer(SD~as.factor(Collapse)+(1|Block),data=Size_grid150,family=poisson)
+SD_M3<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid150,family=poisson)
+r.squaredGLMM(SD_M3)
+
+plot(Size_grid150$Year,Size_grid150$SD)
+points(Size_grid150$Year,exp(predict(SD_M3,re.form = NA)),col="red")
+
+#now do BA
+
+#for small trees
+SD_M0.1<-lmer(BA~1+(1|Block),data=Size_grid15)
+SD_M0.2<-lmer(BA~1+(Block|Year2),data=Size_grid15)
+plot(SD_M0.1)
+plot(SD_M0.2)
+AICc(SD_M0.1,SD_M0.2)
+#the first construction seems best
+SD_M1<-lmer(BA~Year2+(Block|Year2),data=Size_grid15)
+SD_M2<-lmer(BA~as.factor(Collapse)+(Block|Year2),data=Size_grid15)
+SD_M3<-lmer(BA~Year2*as.factor(Collapse)+(Block|Year2),data=Size_grid15)
+r.squaredGLMM(SD_M3)
+AICc(SD_M1,SD_M2,SD_M3)
+
+plot(Size_grid15$Year,Size_grid15$BA/400)
+points(Size_grid15$Year,predict(SD_M3,re.form = NA)/400,col="red")
+
+#for trees ~25cm
+SD_M0.1<-lmer(BA~1+(1|Block),data=Size_grid25)
+SD_M0.2<-lmer(BA~1+(Block|Year2),data=Size_grid25)
+plot(SD_M0.1)
+plot(SD_M0.2)
+AICc(SD_M0.1,SD_M0.2)
+#the first construction seems best
+SD_M1<-lmer(BA~Year2+(Block|Year2),data=Size_grid25)
+SD_M2<-lmer(BA~as.factor(Collapse)+(Block|Year2),data=Size_grid25)
+SD_M3<-lmer(BA~Year2*as.factor(Collapse)+(Block|Year2),data=Size_grid25)
+r.squaredGLMM(SD_M3)
+AICc(SD_M1,SD_M2,SD_M3)
+
+plot(SD_M3)
+
+plot(Size_grid25$Year,Size_grid25$BA/400)
+points(Size_grid25$Year,predict(SD_M3,re.form = NA)/400,col="red")
+
+#for trees ~45cm
+SD_M0.1<-lmer(BA~1+(1|Block),data=Size_grid45)
+SD_M0.2<-lmer(BA~1+(Block|Year2),data=Size_grid45)
+plot(SD_M0.1)
+plot(SD_M0.2)
+AICc(SD_M0.1,SD_M0.2)
+#the first construction seems best
+SD_M1<-lmer(BA~Year2+(Block|Year2),data=Size_grid45)
+SD_M2<-lmer(BA~as.factor(Collapse)+(Block|Year2),data=Size_grid45)
+SD_M3<-lmer(BA~Year2*as.factor(Collapse)+(Block|Year2),data=Size_grid45)
+r.squaredGLMM(SD_M3)
+AICc(SD_M1,SD_M2,SD_M3)
+
+plot(SD_M3)
+
+plot(Size_grid45$Year,Size_grid45$BA/400)
+points(Size_grid45$Year,predict(SD_M3,re.form = NA)/400,col="red")
+
+
+
+#for large trees
+SD_M0.1<-lmer(BA~1+(1|Block),data=Size_grid150)
+SD_M0.2<-lmer(BA~1+(Block|Year2),data=Size_grid150)
+plot(SD_M0.1)
+plot(SD_M0.2)
+AICc(SD_M0.1,SD_M0.2)
+#the first construction seems best
+
+
+SD_M1<-lmer(BA~Year2+(Block|Year2),data=Size_grid150)
+SD_M2<-lmer(BA~as.factor(Collapse)+(Block|Year2),data=Size_grid150)
+SD_M3<-lmer(BA~Year2*as.factor(Collapse)+(Block|Year2),data=Size_grid150)
+r.squaredGLMM(SD_M3)
+AICc(SD_M1,SD_M2,SD_M3)
+
+
+plot(Size_grid150$Year,Size_grid150$BA/400)
+points(Size_grid150$Year,predict(SD_M3,re.form = NA)/400,col="red")
+
+
+#create a figure to show changes in BA per size class for collapsed and non-collapsed plots
+Size_grid$BA_bin<-round(Size_grid$BA/400,0)
+
+BA_sum<-ddply(Size_grid,.(BA_bin,Size_Class,Year,Collapse),summarize,BA_bin=length(BA_bin),BA=sum(BA)/400)
+
+
+ggplot(BA_sum,aes(x=Year,y=BA,size=BA_bin,group=Size_Class,colour=as.factor(Size_Class)))+geom_point()+facet_grid(Size_Class~Collapse,scales = "free")+geom_smooth(size=2,method=lm,alpha=0.5)
+
+head(Size_grid)
