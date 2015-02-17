@@ -183,7 +183,8 @@ Size_grid$Year2<-Size_grid$Year-mean(Size_grid$Year)
 Size_grid15<-subset(Size_grid,Size_Class==15)
 #the first construction seems best
 SD_15<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid15,family=poisson)
-summary(SD_M3)
+summary(SD_15)
+r.squaredGLMM(SD_15)
 Size_grid15$SD_pred<-exp(predict(SD_15,re.form=NA))
 
 #do the same with 25
@@ -191,7 +192,7 @@ Size_grid25<-subset(Size_grid,Size_Class==25)
 
 SD_M0.1<-glmer(SD~1+(1|Block),data=Size_grid25,family=poisson)
 SD_25<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid25,family=poisson)
-r.squaredGLMM(SD_M3)
+r.squaredGLMM(SD_25)
 Size_grid25$SD_pred<-exp(predict(SD_25,re.form=NA))
 
 #do the same with 45
@@ -200,16 +201,16 @@ Size_grid45<-subset(Size_grid,Size_Class==45)
 SD_M0.1<-glmer(SD~1+(1|Block),data=Size_grid45,family=poisson)
 
 SD_45<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid45,family=poisson)
-r.squaredGLMM(SD_M3)
+r.squaredGLMM(SD_45)
 Size_grid45$SD_pred<-exp(predict(SD_45,re.form=NA))
 
 #do the same with large trees
 Size_grid150<-subset(Size_grid,Size_Class==150)
 
 SD_M0.1<-glmer(SD~1+(1|Block),data=Size_grid150,family=poisson)
-t
+
 SD_150<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid150,family=poisson)
-r.squaredGLMM(SD_M3)
+r.squaredGLMM(SD_150)
 
 Size_grid150$SD_pred<-exp(predict(SD_150,re.form=NA))
 
