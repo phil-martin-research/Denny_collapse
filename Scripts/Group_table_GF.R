@@ -10,7 +10,7 @@ library(gridExtra)
 
 #load in data
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
-GF<-read.csv("BA_GF_ALL.csv")
+GF<-read.csv("Data/BA_GF_ALL.csv")
 
 head(GF)
 
