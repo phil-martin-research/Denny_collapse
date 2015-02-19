@@ -137,3 +137,13 @@ colnames(Plots_2)<-c("Plot_status","Adjacent_plot_status","Year","Number_of_plot
 write.csv(Plots_1,file="Figures/Plots_collapse1.csv",row.names = F)
 write.csv(Plots_2,file="Figures/Plots_collapse2.csv",row.names = F)
 
+Plots1984<-subset(Plots,Year==1984)
+Plots1988<-subset(Plots,Year==1988)
+Plots1999<-subset(Plots,Year==1999)
+Plots2014<-subset(Plots,Year==2014)
+
+chisq.test(table(Plots1984$Collapsed,Plots1984$Collapsed_adj2))
+chisq.test(table(Plots1988$Collapsed,Plots1988$Collapsed_adj2))
+chisq.test(table(Plots1999$Collapsed,Plots1999$Collapsed_adj2))
+chisq.test(table(Plots2014$Collapsed,Plots2014$Collapsed_adj2))
+

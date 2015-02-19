@@ -318,3 +318,56 @@ GF_sor2<-GF_sor1+theme(panel.grid.major = element_blank(),panel.grid.minor = ele
 GF_sor2+scale_colour_discrete(name="Year of measurements")
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("GF_Sorenson.png",width = 8,height=6,units = "in",dpi=300)
+
+
+#########################################################
+#produce a NDMS plot of changes in composition###########
+#########################################################
+
+str(GF2)
+
+drops<-c("Block","Year","Ground_cover")
+GF2<-GF[,!(names(GF) %in% drops)]
+GF2$Sum<-rowSums(GF2)
+GF2$Agrostis.spp.<-ifelse(GF2$Sum==0,1,GF2$Agrostis.spp.)
+GF2<-subset(GF2,Sum>0)
+drops<-c("Sum")
+GF3<-GF2[,!(names(GF2) %in% drops)]
+
+
+#create NMDS
+vare.dis <- vegdist(GF3)
+vare.mds0 <- isoMDS(vare.dis)
+
+stressplot(vare.mds0, vare.dis)
+
+NMDS<-as.data.frame(vare.mds0)
+NMDS$Block<-GF$Block
+NMDS$Year<-GF$Year
+
+#merge to data on basal area
+keeps<-c("Block","Year","BAPERCM")
+BA3<-BA[keeps]
+
+head(NMDS)
+
+NMDS2<-merge(NMDS,BA3,by=c("Block","Year"))
+
+Groups<-data.frame(max=c(-0.75,-0.50,-0.25,0,3),min=c(-1.00,-0.75,-0.50,-0.25,0),group=c("100-75%","75-50%","50-25%","25-0%","0-216% increase"))
+head(BA)
+BA_groups<-NULL
+for(i in 1:nrow(Groups)){
+  BA2<-subset(NMDS2,NMDS2$BAPERCM>Groups[i,2]&NMDS2$BAPERCM<Groups[i,1])
+  BA2$Group<-Groups[i,3]
+  BA_groups<-rbind(BA_groups,BA2)
+}
+
+NMDS2
+
+
+#now plot this ndms
+theme_set(theme_bw(base_size=12))
+NDMS_plot1<-ggplot(BA_groups,aes(x=points.1,y=points.2,shape=Group))+geom_point(alpha=0.5)+facet_grid(Group~Year)
+NDMS_plot2<-NDMS_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+NDMS_plot2
+ggsave("Figures/NDMS_GF.png",width = 10,height=10,units = "in",dpi=300)

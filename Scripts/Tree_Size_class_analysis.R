@@ -204,6 +204,8 @@ SD_45<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid45,family=pois
 r.squaredGLMM(SD_45)
 Size_grid45$SD_pred<-exp(predict(SD_45,re.form=NA))
 
+ddply(Size_grid45,.(Year,Collapse),summarize,SD=mean(SD_pred))
+
 #do the same with large trees
 Size_grid150<-subset(Size_grid,Size_Class==150)
 
@@ -213,6 +215,14 @@ SD_150<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid150,family=po
 r.squaredGLMM(SD_150)
 
 Size_grid150$SD_pred<-exp(predict(SD_150,re.form=NA))
+
+ddply(Size_grid150,.(Year,Collapse),summarize,SD=mean(SD_pred))
+
+1-(21.808/62.31631)
+
+1-(65.35917/62.31631)
+
+1-(32.600508/58.635822)
 
 #now do BA
 
