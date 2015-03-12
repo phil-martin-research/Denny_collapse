@@ -85,17 +85,33 @@ Rel_Ab<-rbind(Rel_Ab,Cov_block)
 }
 
 #merge data on abundances to data on BA change
+head(BA)
 BA2<-subset(BA,select=c("Year","Block","BAPERCM","BAM"))
 BA_ab<-merge(Rel_Ab,BA2,by=c("Block","Year"))
 
 ############################################################
 #analysis of change in grass abundance######################
 ############################################################
-Grass_ab<-subset(BA_ab,Year>1964)
-Grass_ab$PCC<-ifelse(Grass_ab$PCC>100,100,Grass_ab$PCC)
-Grass_ab$BAPERCM2<-Grass_ab$BAPERCM*(-1)
+#classify plots by collapse status - collapsed (1) or not (0)
+BA2$Collapse<-NA
+for (i in 1:nrow(BA2)){
+  BA2$Collapse[i]<-ifelse(BA2$BAPERCM[i]<=-0.25,1,0)
+}
+#classify plots to identify those that have *at some point* been classed as collapsed
+BA2$Collapse2<-NA
+BA3<-NULL
+Block_unique<-unique(BA2$Block)
+for (i in 1:length(Block_unique)){
+  Block_sub<-subset(BA2,Block==Block_unique[i])
+  Block_sub$Collapse2<-ifelse(sum(Block_sub$Collapse)>0,1,0)
+  BA3<-rbind(Block_sub,BA3)
+}
+
+BA_ab<-merge(Rel_Ab,BA3,by=c("Block","Year"))
+
 
 summary(Grass_ab$PCC)
+ggplot(BA_ab,aes(x=BAM,colour=as.factor(Year),y=qlogis((Perc_C/100)+0.01),group=Block))+geom_point()+geom_smooth(method="lm",aes(group=NULL),size=3)
 
 
 #null model
