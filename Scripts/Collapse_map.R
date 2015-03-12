@@ -10,10 +10,6 @@ library(reshape2)
 #load data
 Plots<-read.csv("Data/BA_tree_ab.csv")
 
-head(Plots)
-
-summary(Plots)
-
 #classify plots by the degree to which they have collapsed
 #1- stable or increase, 2 - 0-25% decrease, 3 - 25-50% decrease, 
 #4 - 50-75% decrease, 5 75-100% decrease
@@ -26,17 +22,11 @@ for (i in 1:nrow(Groups)){
   Plots2<-rbind(Plot_sub,Plots2)
 }
 
-head(Plots2)
-
-
-ggplot(Plots2,aes(Collapse_group,BAPERCM))+geom_point()+facet_wrap(~Year)
-
 #change 1996 to 1999
 Plots2$Year2<-NA
 for (i in 1:nrow(Plots2)){
   Plots2$Year2[i]<-ifelse(Plots2$Year[i]==1996|Plots2$Year[i]==1999,"1996/9",Plots2$Year[i])
 }
-
 
 #reorder factor for collapse groups to plot from stable to most collapsed
 Plots2$Collapse_group <- factor(Plots2$Collapse_group, c("Stable or increase","0-25% loss","25-50% loss","50-75% loss","75-100% loss"))
@@ -46,8 +36,6 @@ labs<-data.frame(x=min(Plots2$Easting)+10,y=max(Plots2$Northing),Year2=c("1964",
   
 #add scale bar
 scale<-data.frame(x=max(Plots2$Easting)-150,y=max(Plots2$Northing)-250,Year2=c("1964"))
-
-
 
 
 #plot location of plots grouped by collapse status
