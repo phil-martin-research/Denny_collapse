@@ -63,6 +63,6 @@ Collapse_map4<-Collapse_map3+coord_fixed(ratio = 1)+xlim(c(432930,433450))+ geom
 Collapse_map4+geom_segment(data=scale,aes(x = x, y = y, xend = x+200, yend = y),colour="black")+geom_text(data=scale,aes(x+90, y+50, label="200m", group=NULL),colour="black")
 ggsave("Figures/Collapse_map_groups.png",width = 8,height=6,units = "in",dpi=300)
 Collapse_map4+ 
-  theme(strip.background = element_blank(), strip.text = element_blank())
+  theme(strip.background = element_blank(), strip.text = element_blank())+geom_segment(data=scale,aes(x = x, y = y, xend = x+200, yend = y),colour="black")+geom_text(data=scale,aes(x+90, y+50, label="200m", group=NULL),colour="black")
 ggsave("Figures/Collapse_map_nolab.png",width = 8,height=6,units = "in",dpi=300)
 
