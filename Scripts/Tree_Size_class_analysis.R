@@ -145,7 +145,7 @@ for (i in 2:nrow(Size_class)){
 #now summarise this by block and year
 
 
-SD_class<-ddply(Trees_M_Size,.(Block,Year,Size_Class),summarise,SD=(length(DBH)*25),BA=sum(BA))
+SD_class<-ddply(Trees_M_Size,.(Block,Year,Size_Class),summarise,SD=length(DBH),BA=sum(BA))
 
 Trees_blocks<-merge(SD_class,Plots2,by=c("Block","Year"))
 head(Trees_blocks)
@@ -173,45 +173,50 @@ for (i in 1:nrow(Size_grid)){
 
 head(Size_grid)
 
-ggplot(Size_grid,aes(x=Year,y=SD,group=Size_Class,colour=as.factor(Size_Class)))+geom_point()+facet_grid(Size_Class~Collapse)+geom_smooth(size=2,method=lm,alpha=0.5)
+Size_grid2<-subset(Size_grid,Year!=1999&Block<51)
+Size_grid3<-subset(Size_grid,Year==1964&Block>51|Year==1999&Block>51|Year==2014&Block>51)
+Size_grid4<-rbind(Size_grid2,Size_grid3)
+head(Size_grid4,n=20)
+
+ggplot(Size_grid4,aes(x=Year,y=SD,group=Size_Class,colour=as.factor(Size_Class)))+geom_point()+facet_grid(Size_Class~Collapse)+geom_smooth(size=2,method=lm,alpha=0.5,aes(group=as.factor(Block)))
   
 #Rescale year for models
-Size_grid$Year2<-Size_grid$Year-mean(Size_grid$Year)
+Size_grid4$Year2<-Size_grid4$Year-mean(Size_grid4$Year)
 
 #model of stem density change for different size classes over time
 #first look at small trees <15cm
-Size_grid15<-subset(Size_grid,Size_Class==15)
+Size_grid15<-subset(Size_grid4,Size_Class==15)
 #the first construction seems best
-SD_15<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid15,family=poisson)
+SD_15<-glmer(SD~Year2*as.factor(Collapse)+(Year2|Block),data=Size_grid15,family=poisson)
 summary(SD_15)
 r.squaredGLMM(SD_15)
 Size_grid15$SD_pred<-exp(predict(SD_15,re.form=NA))
 
 #do the same with 25
-Size_grid25<-subset(Size_grid,Size_Class==25)
+Size_grid25<-subset(Size_grid4,Size_Class==25)
 
 SD_M0.1<-glmer(SD~1+(1|Block),data=Size_grid25,family=poisson)
-SD_25<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid25,family=poisson)
+SD_25<-glmer(SD~Year2*as.factor(Collapse)+(Year2|Block),data=Size_grid25,family=poisson)
 r.squaredGLMM(SD_25)
 Size_grid25$SD_pred<-exp(predict(SD_25,re.form=NA))
 
 #do the same with 45
-Size_grid45<-subset(Size_grid,Size_Class==45)
+Size_grid45<-subset(Size_grid4,Size_Class==45)
 
 SD_M0.1<-glmer(SD~1+(1|Block),data=Size_grid45,family=poisson)
 
-SD_45<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid45,family=poisson)
+SD_45<-glmer(SD~Year2*as.factor(Collapse)+(Year2|Block),data=Size_grid45,family=poisson)
 r.squaredGLMM(SD_45)
 Size_grid45$SD_pred<-exp(predict(SD_45,re.form=NA))
 
 ddply(Size_grid45,.(Year,Collapse),summarize,SD=mean(SD_pred))
 
 #do the same with large trees
-Size_grid150<-subset(Size_grid,Size_Class==150)
+Size_grid150<-subset(Size_grid4,Size_Class==150)
 
-SD_M0.1<-glmer(SD~1+(1|Block),data=Size_grid150,family=poisson)
+SD_M0.1<-glmer(SD~1+(Year2|Block),data=Size_grid150,family=poisson)
 
-SD_150<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid150,family=poisson)
+SD_150<-glmer(SD~Year2*as.factor(Collapse)+(Year2|Block),data=Size_grid150,family=poisson)
 r.squaredGLMM(SD_150)
 
 Size_grid150$SD_pred<-exp(predict(SD_150,re.form=NA))
@@ -228,28 +233,32 @@ ddply(Size_grid150,.(Year,Collapse),summarize,SD=mean(SD_pred))
 
 #for small trees
 
-BA_15<-lmer(BA~Year2*as.factor(Collapse)+(Block|Year2),data=Size_grid15)
+BA_15_NULL<-lmer(BA~1+(Year2|Block),data=Size_grid15)
+BA_15_1<-lmer(BA~Year2*as.factor(Collapse)+(Year2|Block),data=Size_grid15)
+BA_15_2<-lmer(BA~Year2+(Year2|Block),data=Size_grid15)
+BA_15_3<-lmer(BA~as.factor(Collapse)+(Year2|Block),data=Size_grid15)
+AICc(BA_15_NULL,BA_15_1,BA_15_2,BA_15_3)
 r.squaredGLMM(BA_15)
 summary(Size_grid15)
 
 Size_grid15$BA_pred<-predict(BA_15,re.form=NA)
 #for trees ~25cm
 
-BA_25<-lmer(BA~Year2*as.factor(Collapse)+(Block|Year2),data=Size_grid25)
-r.squaredGLMM(SD_M3)
+BA_25<-lmer(BA~Year2*as.factor(Collapse)+(Year2|Block),data=Size_grid25)
+r.squaredGLMM(BA_25)
 Size_grid25$BA_pred<-predict(BA_25,re.form=NA)
 
 #for trees ~45cm
 
-BA_45<-lmer(BA~Year2*as.factor(Collapse)+(Block|Year2),data=Size_grid45)
-r.squaredGLMM(SD_M3)
+BA_45<-lmer(BA~Year2*as.factor(Collapse)+(Year2|Block),data=Size_grid45)
+r.squaredGLMM(BA_45)
 AICc(SD_M1,SD_M2,SD_M3)
 Size_grid45$BA_pred<-predict(BA_45,re.form=NA)
 
 
 #for large trees
-BA_150<-lmer(BA~Year2*as.factor(Collapse)+(Block|Year2),data=Size_grid150)
-r.squaredGLMM(SD_M3)
+BA_150<-lmer(BA~Year2*as.factor(Collapse)+(Year2|Block),data=Size_grid150)
+r.squaredGLMM(BA_150)
 Size_grid150$BA_pred<-predict(BA_150,re.form=NA)
 
 
@@ -263,17 +272,21 @@ BA_preds$Size_Class2<-ifelse(BA_preds$Size_Class==150,">45cm",BA_preds$Size_Clas
 
 BA_preds$Size_Class2<-factor(BA_preds$Size_Class2,c(">45cm","25-45cm","15-25cm","10-15cm"))
 
+BA_preds2<-subset(BA_preds,Year!=1999&Block<51)
+BA_preds3<-subset(BA_preds,Year==1964&Block>51|Year==1999&Block>51|Year==2014&Block>51)
+BA_preds4<-rbind(BA_preds2,BA_preds3)
+head(BA_preds4,n=20)
 
 #create a figure to show changes in BA per size class for collapsed and non-collapsed plots
 theme_set(theme_bw(base_size=12))
-BA_size1<-ggplot(BA_preds,aes(x=Year,y=BA,group=Size_Class2,colour=as.factor(Size_Class2)))+geom_point(shape=1)+geom_line(aes(y=BA_pred))+facet_grid(Size_Class2~Collapse2,scales="free")
+BA_size1<-ggplot(BA_preds4,aes(x=Year,y=BA,group=Size_Class2,colour=as.factor(Size_Class2)))+geom_point(shape=1)+geom_line(alpha=0.2,aes(group=Block))+geom_line(aes(y=BA_pred),size=2)+facet_grid(Size_Class2~Collapse2,scales="free")
 BA_size2<-BA_size1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
 BA_size2+scale_colour_brewer(palette="Set1","DBH size class")+ylab("BA (metres squared per ha)")
 ggsave("Figures/BA_Size_class.png",width = 8,height=8,units = "in",dpi=1200)
 
 #create a figure to show changes in BA per size class for collapsed and non-collapsed plots
 theme_set(theme_bw(base_size=12))
-SD_size1<-ggplot(BA_preds,aes(x=Year,y=SD,group=Size_Class2,colour=as.factor(Size_Class2)))+geom_jitter(shape=1)+geom_line(aes(y=SD_pred))+facet_grid(Size_Class2~Collapse2,scales="free")
+SD_size1<-ggplot(BA_preds,aes(x=Year,y=SD,group=Size_Class2,colour=as.factor(Size_Class2)))+geom_point(shape=1)+geom_line(alpha=0.2,aes(group=Block))+geom_line(aes(y=SD_pred),size=2)+facet_grid(Size_Class2~Collapse2,scales="free")
 SD_size2<-SD_size1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
 SD_size2+scale_colour_brewer(palette="Set1","DBH size class")+ylab("Stem density per ha")
 ggsave("Figures/SD_Size_class.png",width = 8,height=8,units = "in",dpi=1200)
