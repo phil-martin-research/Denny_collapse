@@ -1,19 +1,16 @@
 #script to calculate changes in Denny wood ground flora over time#
 rm(list=ls(all=TRUE))
 
-#open packages neeeded for exploration
+#open packages neeeded
 library(ggplot2)
 library(plyr)
-library(reshape2)
 library(ape)
 library(geoR)
 library(vegan)
 library(reshape2)
 library(lme4)
-library(nlme)
 library(MuMIn)
-library(quantreg)
-library(car)
+
 
 #load in data
 BA<-read.csv("Data/Denny_plots.csv")
@@ -88,73 +85,76 @@ Rel_Ab<-rbind(Rel_Ab,Cov_block)
 head(BA)
 BA2<-subset(BA,select=c("Year","Block","BAPERCM","BAM"))
 BA_ab<-merge(Rel_Ab,BA2,by=c("Block","Year"))
+write.csv(BA_ab,"Data/Grass_ab_BA.csv",row.names=F)
+
 
 ############################################################
 #analysis of change in grass abundance######################
 ############################################################
-#classify plots by collapse status - collapsed (1) or not (0)
-BA2$Collapse<-NA
-for (i in 1:nrow(BA2)){
-  BA2$Collapse[i]<-ifelse(BA2$BAPERCM[i]<=-0.25,1,0)
-}
-#classify plots to identify those that have *at some point* been classed as collapsed
-BA2$Collapse2<-NA
-BA3<-NULL
-Block_unique<-unique(BA2$Block)
-for (i in 1:length(Block_unique)){
-  Block_sub<-subset(BA2,Block==Block_unique[i])
-  Block_sub$Collapse2<-ifelse(sum(Block_sub$Collapse)>0,1,0)
-  BA3<-rbind(Block_sub,BA3)
-}
+BA_ab<-read.csv("Data/Grass_ab_BA.csv")
+BA_ab<-subset(BA_ab,Year>1964)
 
-BA_ab<-merge(Rel_Ab,BA3,by=c("Block","Year"))
+BA_ab$Perc_C2<-(BA_ab$Perc_C/100)
+BA_ab$Perc_C2<-ifelse(BA_ab$Perc_C2>1,BA_ab$Perc_C2-0.02,BA_ab$Perc_C2+0.02)
+BA_ab$BAPERCM2<-BA_ab$BAPERCM*-1
 
-
-summary(Grass_ab$PCC)
-ggplot(BA_ab,aes(x=BAM,colour=as.factor(Year),y=qlogis((Perc_C/100)+0.01),group=Block))+geom_point()+geom_smooth(method="lm",aes(group=NULL),size=3)
-
+ggplot(BA_ab,aes(x=BAPERCM2,y=Perc_C2))+geom_point()+facet_wrap(~Year)+geom_smooth(method="lm")
 
 #null model
-M0.1_G<-lmer(qlogis((PCC+4)/105)~1+(1|Block),data=Grass_ab)
-M0.2_G<-lmer(qlogis((PCC+4)/105)~1+(Block|Year),data=Grass_ab)
-AICc(M0.1_G,M0.2_G)#the more simple model seems fine so we go with that
+M0.1_G<-lmer(qlogis(Perc_C2)~1+(1|Block),data=BA_ab)
+M0.2_G<-lmer(qlogis(Perc_C2)~1+(1|Block)+(1|Year),data=BA_ab)
+M0.3_G<-lmer(qlogis(Perc_C2)~1+(1|Block)+(BAPERCM2|Year),data=BA_ab)
+M0.4_G<-lmer(qlogis(Perc_C2)~1+(BAPERCM2|Year),data=BA_ab)
+M0.5_G<-lmer(qlogis(Perc_C2)~1+(1|Year),data=BA_ab)
 
-M1_G<-lmer(qlogis((PCC+4)/105)~BAPERCM2+(Block|Year),data=Grass_ab)
-M2_G<-lmer(qlogis((PCC+4)/105)~BAPERCM2+I(BAPERCM^2)+(Block|Year),data=Grass_ab)
-M3_G<-lmer(qlogis((PCC+4)/105)~BAPERCM2+I(BAPERCM^2)+I(BAPERCM^3)+(Block|Year),data=Grass_ab)
-plot(M1_G)
-plot(M2_G)
+AICc(M0.1_G,M0.2_G,M0.3_G,M0.4_G,M0.5_G)
+
+dotplot(ranef(M0.1_G,condVar=TRUE),
+        lattice.options=list(layout=c(1,2)))
+
+#fixed effects models
+M1_G<-lmer(qlogis(Perc_C2)~BAPERCM2+(1|Block),data=BA_ab)
+M2_G<-lmer(qlogis(Perc_C2)~BAPERCM2+I(BAPERCM2^2)+(1|Block),data=BA_ab)
+M3_G<-lmer(qlogis(Perc_C2)~BAPERCM2+I(BAPERCM2^2)+I(BAPERCM2^3)+(1|Block),data=BA_ab)
+
 plot(M3_G)
+qqnorm(resid(M3_G))
 
-Grass_models<-list(M1_G,M2_G,M3_G,M0.2_G)
-
-Grass_sel<-model.sel(Grass_models,REML=F)
-Grass_sel$R_sq<-c(r.squaredGLMM(M3_G)[1],r.squaredGLMM(M2_G)[1],r.squaredGLMM(M1_G)[1],r.squaredGLMM(M0.2_G)[1])
-
-Grass_sel2<-subset(Grass_sel,delta<=7)
-
-Grass_avg<-model.avg(list(M1_G,M2_G,M3_G))
+summary(M3_G)
 
 
-Grass_pred_se<-predict(Grass_avg,se.fit=T)
+Grass_models<-list(M1_G,M2_G,M3_G,M0.1_G)
 
-plot(Grass_ab$BAPERCM2,Grass_ab$PCC)
-points(Grass_ab$BAPERCM2,(((plogis(predict(M3_G,re.form=NA)))*105)-4),col="red")
-points(Grass_ab$BAPERCM2,(((plogis(Grass_pred_se$fit))*105)-4),col="red")
-points(Grass_ab$BAPERCM2,(((plogis(Grass_pred_se$fit+(Grass_pred_se$se.fit*1.96)))*105)-4),col="red")
-points(Grass_ab$BAPERCM2,(((plogis(Grass_pred_se$fit-(Grass_pred_se$se.fit*1.96)))*105)-4),col="red")
+#produce model selection table
+Grass_sel<-model.sel(Grass_models,REML=F,fit=T)
+Grass_sel$R_sq<-c(r.squaredGLMM(M3_G)[1],r.squaredGLMM(M2_G)[1],r.squaredGLMM(M1_G)[1],r.squaredGLMM(M0.1_G)[1])
+write.csv(Grass_sel,"Figures/Mod_sel_Grass_grad.csv")
+
+#now get model averaged variables
+Grass_avg<-model.avg(Grass_sel,fit=T)
+summary(Grass_avg)
+importance(Grass_avg)
 
 
-Grass_ab$pred<-(((plogis(Grass_pred_se$fit))*105)-4)
-Grass_ab$UCI<-(((plogis(Grass_pred_se$fit+(Grass_pred_se$se.fit*1.96)))*105)-4)
-Grass_ab$LCI<-(((plogis(Grass_pred_se$fit-(Grass_pred_se$se.fit*1.96)))*105)-4)
+Grass_avg2<-(Grass_avg$avg.model)  
+
+?model.avg
+
+Grass_pred_se<-predict(Grass_avg,re.form=NA)
+Grass_pred_2<-predict(Grass_avg)
+
+
+plot(BA_ab$BAPERCM2,BA_ab$Perc_C2*100)
+points(BA_ab$BAPERCM2,(plogis(Grass_pred_se))*100,col="red")
+points(BA_ab$BAPERCM2,(plogis(Grass_pred_2))*100,col="blue")
+
 
 #change symbols for plot to give different ones for enclosed andd unenclosed plots
-Grass_ab$Transect<-ifelse(Grass_ab$Block>=51,"Unenclosed","Enclosed")
+BA_ab$Transect<-ifelse(Grass_ab$Block>=51,"Unenclosed","Enclosed")
 
 #plot this relationship
 theme_set(theme_bw(base_size=12))
-Grass_plot1<-ggplot(Grass_ab,aes(x=BAPERCM2*100,y=PCC,colour=as.factor(Year)))+geom_point(shape=1,size=3)
+Grass_plot1<-ggplot(BA_ab,aes(x=BAPERCM2*100,y=PCC,colour=as.factor(Year)))+geom_point(shape=1,size=3)
 Grass_plot2<-Grass_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
 Grass_plot3<-Grass_plot2+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=pred,colour=NULL),alpha=0.8)+ylab("Increase in grass cover since 1964")+xlab("Percentage loss of basal area since 1964")
 Grass_plot3+scale_colour_brewer("Year",palette ="Set1")+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=UCI,colour=NULL),lty=2,alpha=0.8)+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=LCI,colour=NULL),lty=2,alpha=0.8)+xlim(-50,100)
@@ -223,38 +223,44 @@ GF_Sp_BA<-merge(Rel_SpR,BA,by=c("Block","Year"))
 str(GF_Sp_BA)
 GF_Sp_BA$BAPERCM2<-GF_Sp_BA$BAPERCM*(-1)
 GF_Sp_BA<-subset(GF_Sp_BA,Year>1964)
+GF_Sp_BA$Year2<-(GF_Sp_BA$Year-mean(GF_Sp_BA$Year))/sd(GF_Sp_BA$Year)
 
+
+head(GF_Sp_BA)
 
 #plot of relationship between species richness against collapse gradient
 #null model
-Rich_M0.1<-lmer(PSpR~1+(1|Block),data=GF_Sp_BA)
-Rich_M0.2<-lmer(PSpR~1+(Block|Year),data=GF_Sp_BA)
+Rich_M0.1<-glmer(freq~1+(1|Block),data=GF_Sp_BA,family=poisson)
+
+dotplot(ranef(Rich_M0.1,condVar=TRUE),
+        lattice.options=list(layout=c(1,2)))
 
 #linear relationship - this is really the only logical relationship I can think of
-Rich_M1<-lmer(PSpR~BAPERCM2+(Block|Year),data=GF_Sp_BA)
-Rich_M2<-lmer(PSpR~BAPERCM2+I(BAPERCM^2)+(Block|Year),data=GF_Sp_BA)
-Rich_M3<-lmer(PSpR~BAPERCM2+I(BAPERCM^2)+I(BAPERCM^3)+(Block|Year),data=GF_Sp_BA)
+Rich_M1<-glmer(freq~BAPERCM2+(1|Block),data=GF_Sp_BA,family=poisson)
+Rich_M2<-glmer(freq~BAPERCM2+I(BAPERCM^2)+(1|Block),data=GF_Sp_BA,family=poisson)
+Rich_M3<-glmer(freq~BAPERCM2+I(BAPERCM^2)+I(BAPERCM^3)+(1|Block),data=GF_Sp_BA,family=poisson)
+summary(Rich_M2)
 
+summary(GF_Sp_BA)
 
 plot(Rich_M1)
 plot(Rich_M2)
-
-
+plot(Rich_M3)
 
 AICc(Rich_M0.1,Rich_M1,Rich_M2,Rich_M3)
 #the model is the best we have but doesn't say too much - the descriptive power is low
 #r squared <0.2
-Rich_models<-list(Rich_M1,Rich_M2,Rich_M0.2)
+Rich_models<-list(Rich_M1,Rich_M2,Rich_M3,Rich_M0.1)
 
 Rich_sel<-model.sel(Rich_models,REML=F)
-Rich_sel$R_sq<-c(r.squaredGLMM(Rich_M2)[1],r.squaredGLMM(Rich_M1)[1],r.squaredGLMM(Rich_M0.2)[1])
+Rich_sel$R_sq<-c(r.squaredGLMM(Rich_M2)[1],r.squaredGLMM(Rich_M3)[1],r.squaredGLMM(Rich_M1)[1],r.squaredGLMM(Rich_M0.2)[1])
 
-Rich_avg<-model.avg(list(Rich_M2,Rich_M1))
+Rich_avg<-model.avg(Rich_sel,subset=delta<7)
 
-Rich_pred_se<-predict(Rich_avg,se.fit=T)
+Rich_pred_se<-predict(Rich_avg,re.form=NA)
 
-plot(GF_Sp_BA$BAPERCM2,exp(GF_Sp_BA$PSpR)-1)
-points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se$fit)-1,col="red")
+plot(GF_Sp_BA$BAPERCM2,GF_Sp_BA$freq)
+points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se),col="red")
 points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se$fit+(Rich_pred_se$se.fit*1.96))-1,col="red")
 points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se$fit-(Rich_pred_se$se.fit*1.96))-1,col="red")
 
@@ -281,13 +287,15 @@ ggsave("GF_SPR_change.png",width = 8,height=6,units = "in",dpi=300)
 #############################################################
 
 Blocks<-unique(GF$Block)
+drops<-c("Ground_cover")
+GF<-GF[,!(names(GF) %in% drops)]
 Sor_similarity<-NULL
 for (i in 1:length(Blocks)){
+  print(i)
   Block_subset<-subset(GF,Block==Blocks[i])
   Block_subset<-Block_subset[with(Block_subset, order(Year)), ]
   Block_subset[is.na(Block_subset)]<-0
   Block_subset2<-Block_subset[-c(1:2)]
-  Block_subset2<-Block_subset2[-c(71)]
   Block_subset$Sorensen<-c(1,1-vegdist(Block_subset2)[1:nrow(Block_subset2)-1])
   Sor_similarity<-rbind(Sor_similarity,Block_subset)
 }
@@ -304,29 +312,21 @@ ggplot(GF_BA_3,aes(x=BAPERCM,y=Sorensen,group=Block,colour=as.factor(Year)))+geo
 
 #these plots seem to show a reduction in similarity with increasing basal area loss, but let's do this properly
 #with statistics!
+GF_BA_3$Sor2<-GF_BA_3$Sorensen+0.01
 
 #first a null model
-M0.1<-lmer(plogis(Sorensen)~1+(1|Block),data=GF_BA_3)
-M0.2<-lmer(plogis(Sorensen)~1+(Block|Year),data=GF_BA_3)
+M0.1<-lmer(qlogis(Sor2)~1+(1|Block),data=GF_BA_3)
+M0.2<-lmer(qlogis(Sor2)~1+(Block|Year),data=GF_BA_3)
 AICc(M0.1,M0.2)
 plot(M0.1)
 plot(M0.2)
 
 #we go with formation of M0.2 becuase AICc is lowest
 #now add fixed terms
-M1<-lmer(plogis(Sorensen)~BAPERCM+(1|Block),data=GF_BA_3)
+M1<-lmer(qlogis(Sor2)~BAPERCM+(1|Block),data=GF_BA_3)
+M2<-lmer(qlogis(Sor2)~BAPERCM+I(BAPERCM^2)+(1|Block),data=GF_BA_3)
+M3<-lmer(qlogis(Sor2)~BAPERCM+I(BAPERCM^2)+I(BAPERCM^3)+(1|Block),data=GF_BA_3)
 plot(M1)#seems a bit shit, need to work out box cox transformation for this
-summary(M1) #random effects are also highly correlated so I will centre them
-GF_BA_3$BAPERCM2<-GF_BA_3$BAPERCM-mean(GF_BA_3$BAPERCM)
-GF_BA_3$Block2<-GF_BA_3$Block-mean(GF_BA_3$Block)
-#try again
-M1.2<-lmer(plogis(Sorensen)~BAPERCM2+(1|Block),data=GF_BA_3)
-M2.2<-lmer(plogis(Sorensen)~BAPERCM2+I(BAPERCM2^2)+(1|Block),data=GF_BA_3)
-
-plot(M1.2)
-plot(M2.2)
-AICc(M0.2,M1.2,M2.2)
-r.squaredGLMM(M2.2)
 
 #plot this non-relationship
 GF_sor1<-ggplot(GF_BA_3,aes(x=BAPERCM*100,y=Sorensen,group=Block,colour=as.factor(Year)))+geom_point(size=3,shape=1)
