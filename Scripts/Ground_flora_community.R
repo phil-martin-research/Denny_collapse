@@ -198,16 +198,37 @@ Brack_Ab<-BA_ab
 #remove data from 1964
 Brack_Ab<-subset(Brack_Ab,Year>1964)
 
-
 theme_set(theme_bw(base_size=12))
-Brack_plot1<-ggplot(Brack_Ab,aes(x=BAPERCM*100*(-1),y=PCC,colour=as.factor(Year)))+geom_point(shape=1,size=3)
+Brack_plot1<-ggplot(Brack_Ab,aes(x=BAPERCM*100*(-1),y=value,colour=as.factor(Year)))+geom_point(shape=1,size=3)
 Brack_plot2<-Brack_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-Brack_plot2+scale_colour_brewer("Year",palette ="Set1")+ylab("Percentage change in bracken cover since 1964")+xlab("Percentage loss of basal area since 1964")
+Brack_plot2+scale_colour_brewer("Year",palette ="Set1")+ylab("Percentage cover of bracken")+xlab("Percentage loss of basal area since 1964")
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("Bracken_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
 
 
 
+#models of this
+#first fix percentage value
+Brack_Ab$value<-Brack_Ab$value/100
+Brack_Ab$value2<-ifelse(Brack_Ab$value==1,Brack_Ab$value-0.01,Brack_Ab$value)
+Brack_Ab$value2<-ifelse(Brack_Ab$value==0,Brack_Ab$value+0.01,Brack_Ab$value2)
+Brack_Ab$value2_trans<-qlogis(Brack_Ab$value2)
+
+#models of this
+M0<-lmer(value2~1+(1|Block),data=Brack_Ab)
+M1<-lmer(value2~BAPERCM+(1|Block),data=Brack_Ab)
+M2<-lmer(value2~BAPERCM+I(BAPERCM^2)+(1|Block),data=Brack_Ab)
+M3<-lmer(value2~BAPERCM+I(BAPERCM^2)+I(BAPERCM^3)+(1|Block),data=Brack_Ab)
+AICc(M0,M1,M2,M3)
+mod_list<-list(M0,M1,M2,M3)
+
+Mod_sel_brack<-model.sel(mod_list)
+Mod_sel_brack$R_2<-c(r.squaredGLMM(M0)[1],r.squaredGLMM(M1)[1],r.squaredGLMM(M3)[1],
+                    r.squaredGLMM(M2)[1])
+Mod.avg_brack<-model.avg(Mod_sel_brack,subset= delta <7)
+summary(Mod.avg_brack)
+
+write.csv(Mod_sel_brack,"Figures/Mod_sel_brack.csv")
 ######################################################
 #ground flora species richness########################
 ######################################################
