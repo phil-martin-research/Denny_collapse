@@ -182,25 +182,26 @@ head(Size_grid4,n=20)
 ggplot(Size_grid4,aes(x=Year,y=SD,group=Size_Class,colour=as.factor(Size_Class)))+geom_point()+facet_grid(Size_Class~Collapse)+geom_smooth(size=2,method=lm,alpha=0.5,aes(group=as.factor(Block)),se=F)
   
 #Rescale year for models
-Size_grid4$Year2<-(Size_grid4$Year-mean(Size_grid4$Year))/sd(Size_grid4$Year)
+Size_grid4<-subset(Size_grid4,Year==1964|Year==2014)
+Size_grid4$Year2<-as.factor(Size_grid4$Year)
 
 #model of stem density change for different size classes over time
 #first look at small trees <15cm
 Size_grid15<-subset(Size_grid4,Size_Class==15)
 
-SD_15_M0<-glmer(SD~1+(Year2|Block),data=Size_grid15,family=poisson)
-SD_15_M1<-glmer(SD~Year2*as.factor(Collapse)+(Year2|Block),data=Size_grid15,family=poisson)
-SD_15_M2<-glmer(SD~Year2+as.factor(Collapse)+(Year2|Block),data=Size_grid15,family=poisson)
-SD_15_M3<-glmer(SD~Year2+(Year2|Block),data=Size_grid15,family=poisson)
-SD_15_M4<-glmer(SD~as.factor(Collapse)+(Year2|Block),data=Size_grid15,family=poisson)
+SD_15_M0<-glmer(SD~1+(1|Block),data=Size_grid15,family=poisson)
+SD_15_M1<-glmer(SD~Year2*as.factor(Collapse)+(1|Block),data=Size_grid15,family=poisson)
+SD_15_M2<-glmer(SD~Year2+as.factor(Collapse)+(1|Block),data=Size_grid15,family=poisson)
+SD_15_M3<-glmer(SD~Year2+(1|Block),data=Size_grid15,family=poisson)
+SD_15_M4<-glmer(SD~as.factor(Collapse)+(1|Block),data=Size_grid15,family=poisson)
 
 SD_15_models<-list(SD_15_M0,SD_15_M1,SD_15_M2,SD_15_M3,SD_15_M4)
-Mod_sel_SD15<-mod.sel(SD_15_models)
-Mod_sel_SD15$R_2<-c(r.squaredGLMM(SD_15_M1)[1],r.squaredGLMM(SD_15_M3)[1],r.squaredGLMM(SD_15_M2)[1],
-                    r.squaredGLMM(SD_15_M4)[1],r.squaredGLMM(SD_15_M0)[1])
+Mod_sel_SD15<-model.sel(SD_15_models)
+Mod_sel_SD15$R_2<-c(r.squaredGLMM(SD_15_M3)[1],r.squaredGLMM(SD_15_M2)[1],r.squaredGLMM(SD_15_M1)[1],
+                    r.squaredGLMM(SD_15_M0)[1],r.squaredGLMM(SD_15_M4)[1])
 Models_SD15<-get.models(Mod_sel_SD15,subset= delta <7)
 Mod.avg_SD15<-model.avg(Models_SD15)
-Mod.coef_SD15<-(Mod.avg_SD15$av)                    
+summary(Mod.avg_SD15)
 
 write.csv(Mod_sel_SD15,"Figures/Mod_sel_SD_15.csv")
 write.csv(Mod.coef_SD15,"Figures/Mod_coef_SD_15.csv")
