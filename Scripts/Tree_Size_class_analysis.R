@@ -288,6 +288,7 @@ SD_Preds$Collapse2<-ifelse(SD_Preds$Collapse==1,"Collapsed","Stable")
 SD_Preds$Size_Class2<-factor(SD_Preds$Size_Class2, c(">45cm", "25-45cm", "15-25cm", "10-15cm"))
 
 #create plots of sd changes
+dodge <- position_dodge(width=0.9)
 SD_plot<-ggplot(SD_Preds,aes(x=Year2,y=(exp(SD)),ymin=(exp(LCI)),ymax=(exp(UCI)),fill=Collapse2))+
   geom_bar(stat="identity",position =dodge)+geom_errorbar(position =dodge,width=0.25)
 SD_plot2<-SD_plot+facet_wrap(~Size_Class2,ncol=2)+ylab("Plot stem density")+xlab("Year")+ theme(legend.position = "none") 
