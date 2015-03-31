@@ -183,7 +183,7 @@ Mod_sel_SD25<-model.sel(SD_25_models)
 Mod_sel_SD25$R_2<-c(r.squaredGLMM(SD_25_M2)[1],r.squaredGLMM(SD_25_M1)[1],r.squaredGLMM(SD_25_M3)[1],
                     r.squaredGLMM(SD_25_M4)[1],r.squaredGLMM(SD_25_M0)[1])
 Mod.avg_SD25<-model.avg(Mod_sel_SD25,subset= delta <7)
-summary(Mod.avg_SD25)                    
+coef(summary(Mod.avg_SD25))                 
 
 write.csv(Mod_sel_SD25,"Figures/Mod_sel_SD_25.csv")
 
@@ -229,72 +229,32 @@ Mod.coef_SD150<-coef(summary(SD_150_M1))
 write.csv(Mod_sel_SD150,"Figures/Mod_sel_SD_150.csv")
 write.csv(Mod.coef_SD150,"Figures/Mod_coef_SD_150.csv")
 
+object 
+
 
 #create loop to produce predictions for these models
+Model_preds<-NULL
 Size_unique<-data.frame(Size=c(15,25,45,150),Size2=c("10-15cm","15-25cm","25-45cm",">45cm"))
+Model_list<-list(SD_15_M1,SD_25_M1,SD_45_M1,SD_150_M1)
+
 for (i in 1:3){
-  i<-1
   new.data<-expand.grid(Size_Class=Size_unique$Size[i],Size_Class2=Size_unique$Size2[i],Year2=as.factor(c(1964,2014)),Collapse=c(0,1))
-
-
+  new.data$SD<-0
+  M1<-eval(parse(text=paste("SD_",Size_unique$Size[i],"_M1",sep=""))) 
+  mm <- model.matrix(terms(M1),new.data)
+  M_avg<-eval(parse(text=paste("Mod.avg_SD",Size_unique$Size[i],sep=""))) 
+  new.data$SD<- predict(M_avg,new.data,re.form=NA)
+  pvar1 <- diag(mm %*% tcrossprod(vcov(M1),mm))
+  tvar1 <- pvar1+VarCorr(M1)$Block[1]  ## must be adapted for more complex models
+  new.data <- data.frame(
+    new.data
+    , LCI = new.data$SD-2*sqrt(pvar1)
+    , UCI = new.data$SD+2*sqrt(pvar1)
+    , tlo = new.data$SD-2*sqrt(tvar1)
+    , thi = new.data$SD+2*sqrt(tvar1)
+  )
+  Model_preds<-rbind(Model_preds,new.data)
 }
-
-#create new data for size classes 15,25, 45 and 150
-new.data_15<-expand.grid(Size_Class=15,Size_Class2="10-15cm",Year2=as.factor(c(1964,2014)),Collapse=c(0,1))
-new.data_25<-expand.grid(Size_Class=25,Size_Class2="15-25cm",Year2=as.factor(c(1964,2014)),Collapse=c(0,1))
-new.data_45<-expand.grid(Size_Class=45,Size_Class2="25-45cm",Year2=as.factor(c(1964,2014)),Collapse=c(0,1))
-new.data_150<-expand.grid(Size_Class=150,Size_Class2=">45cm",Year2=as.factor(c(1964,2014)),Collapse=c(0,1))
-
-#now predictions for <15cm
-new.data_15<-expand.grid(Size_Class=15,Size_Class2="10-15cm",Year2=as.factor(c(1964,2014)),Collapse=c(0,1))
-new.data_15$SD<-0
-
-mm <- model.matrix(terms(SD_15_M1),new.data_15)
-new.data_15$SD<- predict(Mod.avg_SD15,new.data_15,re.form=NA)
-pvar1 <- diag(mm %*% tcrossprod(vcov(SD_15_M1),mm))
-tvar1 <- pvar1+VarCorr(SD_15_M1)$Block[1]  ## must be adapted for more complex models
-new.data_15 <- data.frame(
-  new.data_15
-  , LCI = new.data_15$SD-2*sqrt(pvar1)
-  , UCI = new.data_15$SD+2*sqrt(pvar1)
-  , tlo = new.data_15$SD-2*sqrt(tvar1)
-  , thi = new.data_15$SD+2*sqrt(tvar1)
-)
-
-dodge <- position_dodge(width=0.9)
-ggplot(new.data_15,aes(x=Year2,y=exp(SD),ymax=exp(thi),ymin=exp(tlo),fill=as.factor(Collapse)))+geom_bar(stat="identity",position =dodge)+geom_errorbar(position =dodge,width=0.25)
-
-#now predictions for 15-25cm
-new.data_25$pred<-predict(Mod.avg_SD25,newdata =new.data_25,re.form=NA)
-new.data_25$SD<-0
-
-mm <- model.matrix(terms(SD_25_M1),new.data_25)
-new.data_15$SD<- predict(Mod.avg_SD15,new.data_15,re.form=NA)
-pvar1 <- diag(mm %*% tcrossprod(vcov(SD_15_M1),mm))
-tvar1 <- pvar1+VarCorr(SD_15_M1)$Block[1]  ## must be adapted for more complex models
-new.data_15 <- data.frame(
-  new.data_15
-  , LCI = new.data_15$SD-2*sqrt(pvar1)
-  , UCI = new.data_15$SD+2*sqrt(pvar1)
-  , tlo = new.data_15$SD-2*sqrt(tvar1)
-  , thi = new.data_15$SD+2*sqrt(tvar1)
-)
-
-dodge <- position_dodge(width=0.9)
-ggplot(new.data_15,aes(x=Year2,y=exp(SD),ymax=exp(thi),ymin=exp(tlo),fill=as.factor(Collapse)))+geom_bar(stat="identity",position =dodge)+geom_errorbar(position =dodge,width=0.25)
-
-
-
-new.data_25$UCI<-new.data_25$pred+(predict(Mod.avg_SD25,newdata =new.data_25,se.fit=T)$se.fit*1.96)
-new.data_25$LCI<-new.data_25$pred-(predict(Mod.avg_SD25,newdata =new.data_25,se.fit=T)$se.fit*1.96)
-new.data_25$Size_Class2<-"15-25cm"
-
-
-new.data_45$pred<-predict(Mod.avg_SD45,newdata =new.data_45,re.form=NA)
-new.data_45$UCI<-new.data_45$pred+(predict(Mod.avg_SD45,newdata =new.data_45,se.fit=T)$se.fit*1.96)
-new.data_45$LCI<-new.data_45$pred-(predict(Mod.avg_SD45,newdata =new.data_45,se.fit=T)$se.fit*1.96)
-new.data_45$Size_Class2<-"25-45cm"
-
 
 
 #now predictions for >45cm
@@ -310,76 +270,15 @@ tvar1 <- pvar1+VarCorr(SD_150_M1)$Block[1]  ## must be adapted for more complex 
     new.data_150
     , LCI = new.data_150$SD-2*sqrt(pvar1)
     , UCI = new.data_150$SD+2*sqrt(pvar1)
+    , tlo = new.data$SD-2*sqrt(tvar1)
+    , thi = new.data$SD+2*sqrt(tvar1)
   )
 
-
-new.data_150$pred<-new.data_150$SD
-new.data_150<-(new.data_150[-c(5)])
-new.data_150$Size_Class2<-">45cm"
-
-SD_Preds<-rbind(new.data_15,new.data_25,new.data_45,new.data_150)
-SD_Preds$Year<-(SD_Preds$Year*sd(Size_grid4$Year))+mean(Size_grid4$Year)
+SD_Preds<-rbind(Model_preds,new.data_150)
 SD_Preds$Collapse2<-ifelse(SD_Preds$Collapse==1,"Collapsed","Stable")
 SD_Preds$Size_Class2<-factor(SD_Preds$Size_Class2, c(">45cm", "25-45cm", "15-25cm", "10-15cm"))
 
-#reclass size group and collapse group for dataframe
-Size_grid4
-Size_grid4$Collapse2<-ifelse(Size_grid4$Collapse==1,"Collapsed","Stable")
-Size_grid4$Size_Class2<-ifelse(Size_grid4$Size_Class==15,"10-15cm",Size_grid4$Size_Class)
-Size_grid4$Size_Class2<-ifelse(Size_grid4$Size_Class==25,"15-25cm",Size_grid4$Size_Class2)
-Size_grid4$Size_Class2<-ifelse(Size_grid4$Size_Class==45,"25-45cm",Size_grid4$Size_Class2)
-Size_grid4$Size_Class2<-ifelse(Size_grid4$Size_Class==150,">45cm",Size_grid4$Size_Class2)
-head(Size_grid4)
-
-Size_grid_size<-ddply(Size_grid4,.(Size_Class2,Collapse2,Year,SD),summarise,number=length(Year))
-
-#create a figure to show changes in BA per size class for collapsed and non-collapsed plots
-theme_set(theme_bw(base_size=12))
-SD_size1<-ggplot(SD_Preds,aes(x=Year,y=exp(pred),ymax=exp(UCI),ymin=exp(LCI),fill=as.factor(Size_Class2),colour=as.factor(Size_Class2)))+geom_ribbon(alpha=0.5)+geom_line(size=1,colour="black")
-SD_size2<-SD_size1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-SD_size2+ylab("Sub-plot stem density")+geom_point(data=Size_grid4,aes(y=SD,ymax=NULL,ymin=NULL,colour=as.factor(Size_Class2)),alpha=0.2,shape=1)+
-  geom_line(data=Size_grid4,aes(group=Block,y=SD,ymax=NULL,ymin=NULL,colour=as.factor(Size_Class2)),alpha=0.2)+scale_colour_brewer(palette="Set1","DBH size class")+
-  scale_fill_brewer(palette="Set1","DBH size class")+facet_grid(Size_Class2~Collapse2,scales="free")+ theme(legend.position="none")
-ggsave("Figures/SD_Size_class.png",width = 8,height=8,units = "in",dpi=400)
-
-SD_size2+ylab("Subplot stem density")+geom_point(data=Size_grid_size,aes(y=SD,ymax=NULL,ymin=NULL,colour=as.factor(Size_Class2),size=number),alpha=0.5,shape=16)+scale_colour_brewer(palette="Set1","DBH size class")+
-  scale_fill_brewer(palette="Set1","DBH size class")+facet_grid(Size_Class2~Collapse2,scales="free")+ theme(legend.position="none")
-ggsave("Figures/SD_Size_class2.png",width = 8,height=8,units = "in",dpi=400)
-
-#make a composite figure of this
-
-Size_grid150<-subset(Size_grid4,Size_Class==150)
-Size_grid_size_150<-ddply(Size_grid150,.(Size_Class2,Collapse2,Year,SD),summarise,number=length(Year))
-SD_Preds150<-subset(SD_Preds,Size_Class==150)
-
-#create plot for >45cm
-SD45_1<-ggplot(Size_grid_size_150,aes(x=Year,y=SD,colour=as.factor(Collapse2),size=number))+geom_point(shape=1,position = position_jitter(w=0,h = 0.1))
-SD45_2<-SD45_1+geom_ribbon(data=SD_Preds150,aes(ymax=exp(UCI),ymin=exp(LCI),y=NULL,size=NULL,colour=NULL,fill=as.factor(Collapse2)),alpha=0.2)+geom_line(data=SD_Preds150,aes(y=exp(pred),group=Collapse2,ymax=NULL,ymin=NULL,colour=NULL,fill=NULL),size=1,colour="black")
-SD45_3<-SD45_2+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-SD45_4<-SD45_3+ylab("Sub-plot stem density (DBH >45cm)")+scale_colour_brewer(palette="Set1","Collapse status")+
-  scale_fill_brewer(palette="Set1","Collapse status")+ theme(legend.position="none")+ annotate("text", x = 1963, y = max(Size_grid_size_150$SD)+1, label = "(a)",size=5)+scale_x_continuous(breaks=c(1965,1975,1985,1995,2005,2015))
-
-#now create plot for 25-45cm 
-
-Size_grid45<-subset(Size_grid4,Size_Class==45)
-Size_grid_size_45<-ddply(Size_grid45,.(Size_Class2,Collapse2,SD),summarise,number=length(Year))
-SD_Preds45<-subset(SD_Preds,Size_Class==45)
-SD_Preds45_2<-ddply(SD_Preds45,.(Collapse2),summarise,pred=exp(median(pred)),UCI=exp(median(UCI)),LCI=exp(median(LCI)))
-
-SD25_1<-ggplot(SD_Preds45_2,aes(x=Collapse2,y=pred,ymax=UCI,ymin=LCI,fill=Collapse2))+geom_bar(stat="identity")+geom_errorbar(width=0.25)+scale_fill_brewer(palette="Set1","Collapse status")
-SD25_2<-SD25_1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-SD25_3<-SD25_2+ylab("Sub-plot stem density (DBH 25-45cm)")+xlab("Collapse status")+ theme(legend.position="none")+ annotate("text", x = 0.5, y = max(SD_Preds45_2$pred)+0.5, label = "(b)",size=5)
-
-#now create plot for 10-15cm
-Size_grid15<-subset(Size_grid4,Size_Class==15)
-Size_grid_size_15<-ddply(Size_grid15,.(Size_Class2,Collapse2,SD,Year),summarise,number=length(Year))
-SD_Preds15<-subset(SD_Preds,Size_Class==15)
-SD15_1<-ggplot(Size_grid_size_15,aes(x=Year,y=SD,colour=as.factor(Collapse2),size=number))+geom_point(shape=1,position = position_jitter(w=0,h = 0.1))
-SD15_2<-SD15_1+geom_ribbon(data=SD_Preds15,aes(ymax=exp(UCI),ymin=exp(LCI),y=NULL,size=NULL,colour=NULL,fill=as.factor(Collapse2)),alpha=0.2)+geom_line(data=SD_Preds15,aes(y=exp(pred),group=Collapse2,ymax=NULL,ymin=NULL,colour=NULL,fill=NULL),size=1,colour="black")
-SD15_3<-SD15_2+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-SD15_4<-SD15_3+ylab("Sub-plot stem density (DBH 10-15cm)")+scale_colour_brewer(palette="Set1","Collapse status")+
-  scale_fill_brewer(palette="Set1","Collapse status")+ theme(legend.position="none")+ annotate("text", x = 1963, y = max(Size_grid_size_15$SD)+1, label = "(c)",size=5)+scale_x_continuous(breaks=c(1965,1975,1985,1995,2005,2015))
-
-png("Figures/SD_Size_class_new.png",width = 12,height = 4,units = "in",res = 600)
-grid.arrange(SD45_4,SD25_3,SD15_4,ncol=3)
-dev.off()
+#create plots of sd changes
+SD_plot<-ggplot(SD_Preds,aes(x=Year2,y=(exp(SD))*25,ymin=(exp(LCI))*25,ymax=(exp(UCI))*25,fill=Collapse2))+
+  geom_bar(stat="identity",position =dodge)+geom_errorbar(position =dodge,width=0.25)
+SD_plot+facet_wrap(~Size_Class2,ncol=2)+ylab(expression(paste("Stem density ", ha^-1)))
