@@ -8,13 +8,16 @@ library(reshape2)
 library(lme4)
 library(MuMIn)
 
+citation(package = "ncf", lib.loc = NULL)
+
 #import data
 Plots<-read.csv("Data/Denny_plots.csv")
 Plot_BA<-Plots[c("Block","Year","BAM","BAPERCM")]
+Plot_BA$Transect<-ifelse(Plot_BA$Block>51,"Unenclosed","Enclosed")
 
 ###################################################
 #first calculate change in each period relative to#
-#previous survey i.e. 19888 relative to 1984, 1996
+#previous survey i.e. 1988 relative to 1984, 1996
 #relative to 1988 etc
 
 BA_changes<-NULL
@@ -34,10 +37,11 @@ for (i in 1:length(Blocks)){
   BA_changes<-rbind(Plot_sub,BA_changes)
 }
 
-BA_changes$Collapse<-ifelse(BA_changes$BAPERCM<=-0.25,1,0)
+BA_changes$Year2<-ifelse(BA_changes$Year==1999|BA_changes$Year==1996,"1996/9",BA_changes$Year)
 
-ddply(BA_changes,.(Year,Change_dir),summarise,Number=length(BAM),BAM=mean(BAM),BAPERC=mean(BAPERCM))
-ddply(BA_changes,.(Year, Collapse),summarise,Number=length(BAM),BA_change=mean(Change))
+BA_changes$Collapse<-ifelse(BA_changes$BAPERCM<=-0.25,1,0)
+ddply(BA_changes,.(Year2,Change_dir),summarise,Number=length(BAM),BAM=mean(BAM),BAPERC=mean(BAPERCM))
+ddply(BA_changes,.(Year2, Change_dir,Transect),summarise,Number=length(BAM),BA_change=mean(Change),sem = sd(Change)/sqrt(length(Change)),BAPERC=mean(BAPERCM),BA_sem = sd(BAPERCM)/sqrt(length(BAPERCM)))
 
 
 ############################################################
@@ -60,7 +64,74 @@ BA_comp_total$Change_Q<-c(NA,BA_comp_total$BA_Q[2:5]-BA_comp_total$BA_Q[1])
 BA_comp_total$Cont_F<-BA_comp_total$Change_F/BA_comp_total$Change
 BA_comp_total$Cont_Q<-BA_comp_total$Change_Q/BA_comp_total$Change
 
-757/(60)
+
+
+#########################################################################
+#now look at percentage of decline for which different size classes were#
+#responsible for different species over the entire period################
+#########################################################################
+
+#load in data
+Trees<-read.csv("Data/Denny_trees_cleaned.csv")
+
+#remove dead trees
+Trees_live<-subset(Trees,Status==1)
+#remove trees <10cm
+Trees_M<-subset(Trees_live,DBH>10)
+Trees_M<-subset(Trees_live,Year>1960)
+Trees_M$Year2<-as.character(Trees_M$Year)
+Trees_M$Year2<-ifelse(Trees_M$Year==1996,"1996/9",Trees_M$Year2)
+Trees_M$Year2<-ifelse(Trees_M$Year==1999,"1996/9",Trees_M$Year2)
+Trees_M$BA<-(Trees_M$DBH^2*(pi/4))/400
+Trees_M$BA2<-(Trees_M$DBH^2)*0.0007854
+plot(Trees_M$BA,Trees_M$BA2)
+head(Trees_M)
+
+#create a loop to classify trees by different size classes
+Trees_M_Size<-NULL
+Size_class<-data.frame(minimum=c(10,15,25,45,150))
+for (i in 2:nrow(Size_class)){
+  Tree_subset<-subset(Trees_M,DBH>Size_class$minimum[i-1])
+  head(Tree_subset)
+  Tree_subset<-subset(Tree_subset,DBH<Size_class$minimum[i])
+  Tree_subset$Size_Class<-Size_class$minimum[i]
+  Trees_M_Size<-rbind(Tree_subset,Trees_M_Size)
+}
+
+Trees_M_Size2<-subset(Trees_M_Size,Year=="1964"|Year=="2014")
+BA_comp_total<-ddply(Trees_M_Size2,.(Year,Species,Size_Class),summarise,BA_total=sum(BA))
+head(BA_comp_total)
+BA_comp_total2<-expand.grid(Species=unique(BA_comp_total$Species),Size_Class=unique(BA_comp_total$Size_Class),Year=unique(BA_comp_total$Year))
+BA_comp_total3<-merge(BA_comp_total2,BA_comp_total,by=c("Species","Year","Size_Class"),all=T)
+BA_comp_total3$BA_total<-ifelse(is.na(BA_comp_total3$BA_total),0,BA_comp_total3$BA_total)
+
+BA_comp_total2<-ddply(Trees_M_Size2,.(Year),summarise,BA_total=sum(BA))
+
+
+#loop to assess the proportional contribution of different tree sizes
+#of different species to the changes in BA
+BA_change_comp<-NULL
+Species_un<-unique(BA_comp_total3[c("Species","Size_Class")])
+colnames(Species_un)<-c("Sp","SC")
+Species_un
+for (i in 1:nrow(Species_un)){
+  BA_comp_sub<-subset(BA_comp_total3,Species==Species_un$Sp[i])
+  BA_comp_sub<-subset(BA_comp_sub,Size_Class==Species_un$SC[i])
+  BA_comp_sub$Change<-NA
+  BA_comp_sub$Change[2]<-BA_comp_sub$BA_total[2]-BA_comp_sub$BA_total[1]
+  BA_comp_sub$Change_cont<-NA
+  BA_comp_sub$Change_cont[2]<-(BA_comp_sub$Change[2]/(2184.461-2699.614))*100
+  BA_change_comp<-rbind(BA_comp_sub,BA_change_comp)
+}
+
+BA_comp_total$Change<-c(NA,BA_comp_total$BA_total[2:5]-BA_comp_total$BA_total[1])
+BA_comp_total$Change_F<-c(NA,BA_comp_total$BA_F[2:5]-BA_comp_total$BA_F[1])
+BA_comp_total$Change_Q<-c(NA,BA_comp_total$BA_Q[2:5]-BA_comp_total$BA_Q[1])
+BA_comp_total$Cont_F<-BA_comp_total$Change_F/BA_comp_total$Change
+BA_comp_total$Cont_Q<-BA_comp_total$Change_Q/BA_comp_total$Change
+
+
+
 
 
 ###################################################################
