@@ -10,6 +10,7 @@ library(gridExtra)
 library(lme4)
 library(MuMIn)
 library(gridExtra)
+library(data.table)
 
 #load in data
 Trees<-read.csv("Data/Denny_trees_cleaned.csv")
@@ -160,13 +161,11 @@ SD_15_M4<-glmer(SD~as.factor(Collapse)+(1|Block),data=Size_grid15,family=poisson
 
 SD_15_models<-list(SD_15_M0,SD_15_M1,SD_15_M2,SD_15_M3,SD_15_M4)
 Mod_sel_SD15<-model.sel(SD_15_models)
-Mod_sel_SD15$R_2<-c(r.squaredGLMM(SD_15_M3)[1],r.squaredGLMM(SD_15_M2)[1],r.squaredGLMM(SD_15_M1)[1],
+Mod_sel_SD15$R_2<-c(r.squaredGLMM(SD_15_M3)[1],r.squaredGLMM(SD_15_M1)[1],r.squaredGLMM(SD_15_M2)[1],
                     r.squaredGLMM(SD_15_M0)[1],r.squaredGLMM(SD_15_M4)[1])
-Models_SD15<-get.models(Mod_sel_SD15,subset= delta <7)
-Mod.avg_SD15<-model.avg(Models_SD15)
+Mod.avg_SD15<-model.avg(Models_SD15,subset= delta <7)
 
 write.csv(Mod_sel_SD15,"Figures/Mod_sel_SD_15.csv")
-write.csv(Mod.coef_SD15,"Figures/Mod_coef_SD_15.csv")
 summary(Mod.avg_SD15)
 
 #do the same with 25
@@ -180,10 +179,10 @@ SD_25_M4<-glmer(SD~as.factor(Collapse)+(1|Block),data=Size_grid25,family=poisson
 
 SD_25_models<-list(SD_25_M0,SD_25_M1,SD_25_M2,SD_25_M3,SD_25_M4)
 Mod_sel_SD25<-model.sel(SD_25_models)
-Mod_sel_SD25$R_2<-c(r.squaredGLMM(SD_25_M2)[1],r.squaredGLMM(SD_25_M1)[1],r.squaredGLMM(SD_25_M3)[1],
-                    r.squaredGLMM(SD_25_M4)[1],r.squaredGLMM(SD_25_M0)[1])
+Mod_sel_SD25$R_2<-c(r.squaredGLMM(SD_25_M1)[1],r.squaredGLMM(SD_25_M2)[1],r.squaredGLMM(SD_25_M4)[1],
+                    r.squaredGLMM(SD_25_M3)[1],r.squaredGLMM(SD_25_M0)[1])
 Mod.avg_SD25<-model.avg(Mod_sel_SD25,subset= delta <7)
-coef(summary(Mod.avg_SD25))                 
+summary(Mod.avg_SD25)             
 
 write.csv(Mod_sel_SD25,"Figures/Mod_sel_SD_25.csv")
 
@@ -240,21 +239,33 @@ Model_list<-list(SD_15_M1,SD_25_M1,SD_45_M1,SD_150_M1)
 for (i in 1:3){
   new.data<-expand.grid(Size_Class=Size_unique$Size[i],Size_Class2=Size_unique$Size2[i],Year2=as.factor(c(1964,2014)),Collapse=c(0,1))
   new.data$SD<-0
+  new.data$UCI<-0
+  new.data$LCI<-0
+  new.data<-new.data[with(new.data, order(Collapse,Year2)), ]
   M1<-eval(parse(text=paste("SD_",Size_unique$Size[i],"_M1",sep=""))) 
   mm <- model.matrix(terms(M1),new.data)
-  M_avg<-eval(parse(text=paste("Mod.avg_SD",Size_unique$Size[i],sep=""))) 
-  new.data$SD<- predict(M_avg,new.data,re.form=NA)
-  pvar1 <- diag(mm %*% tcrossprod(vcov(M1),mm))
-  tvar1 <- pvar1+VarCorr(M1)$Block[1]  ## must be adapted for more complex models
-  new.data <- data.frame(
-    new.data
-    , LCI = new.data$SD-2*sqrt(pvar1)
-    , UCI = new.data$SD+2*sqrt(pvar1)
-    , tlo = new.data$SD-2*sqrt(tvar1)
-    , thi = new.data$SD+2*sqrt(tvar1)
-  )
-  Model_preds<-rbind(Model_preds,new.data)
+  M_avg<-eval(parse(text=paste("Mod.avg_SD",Size_unique$Size[i],sep="")))
+  summary(M_avg)
+  Coefs<-coefTable(M_avg,full = T)
+  Coefs2<-data.frame(Par=as.character(rownames(Coefs)),Coefs)
+  Coefs2$Par<-as.character(Coefs2$Par)
+  Coefs2$Par<-factor(Coefs2$Par,c("(Intercept)","Year22014","as.factor(Collapse)1","as.factor(Collapse)1:Year22014"))
+  Coefs2<-Coefs2[with(Coefs2, order(Par)), ]
+  new.data$SD[1]<-Coefs2[1,2]
+  new.data$UCI[1]<-new.data$SD[1]+(1.96*Coefs2[1,3])
+  new.data$LCI[1]<-new.data$SD[1]-(1.96*Coefs2[1,3])
+  head(new.data)
+for (j in 2:3){
+  new.data$SD[j]<-Coefs2[1,2]+Coefs2[j,2]
+  new.data$UCI[j]<-new.data$SD[j]+(1.96*Coefs2[j,3])
+  new.data$LCI[j]<-new.data$SD[j]-(1.96*Coefs2[j,3])
 }
+new.data$SD[4]<-Coefs[1,2]+Coefs[2,2]+Coefs2[4,2]
+new.data$UCI[4]<-new.data$SD[4]+(1.96*Coefs2[4,3])
+new.data$LCI[4]<-new.data$SD[4]-(1.96*Coefs2[4,3])
+ Model_preds<-rbind(Model_preds,new.data)
+}
+  
 
 
 #now predictions for >45cm
@@ -270,8 +281,6 @@ tvar1 <- pvar1+VarCorr(SD_150_M1)$Block[1]  ## must be adapted for more complex 
     new.data_150
     , LCI = new.data_150$SD-2*sqrt(pvar1)
     , UCI = new.data_150$SD+2*sqrt(pvar1)
-    , tlo = new.data$SD-2*sqrt(tvar1)
-    , thi = new.data$SD+2*sqrt(tvar1)
   )
 
 SD_Preds<-rbind(Model_preds,new.data_150)
@@ -279,6 +288,8 @@ SD_Preds$Collapse2<-ifelse(SD_Preds$Collapse==1,"Collapsed","Stable")
 SD_Preds$Size_Class2<-factor(SD_Preds$Size_Class2, c(">45cm", "25-45cm", "15-25cm", "10-15cm"))
 
 #create plots of sd changes
-SD_plot<-ggplot(SD_Preds,aes(x=Year2,y=(exp(SD))*25,ymin=(exp(LCI))*25,ymax=(exp(UCI))*25,fill=Collapse2))+
+SD_plot<-ggplot(SD_Preds,aes(x=Year2,y=(exp(SD)),ymin=(exp(LCI)),ymax=(exp(UCI)),fill=Collapse2))+
   geom_bar(stat="identity",position =dodge)+geom_errorbar(position =dodge,width=0.25)
-SD_plot+facet_wrap(~Size_Class2,ncol=2)+ylab(expression(paste("Stem density ", ha^-1)))
+SD_plot2<-SD_plot+facet_wrap(~Size_Class2,ncol=2)+ylab("Plot stem density")+xlab("Year")+ theme(legend.position = "none") 
+SD_plot2+scale_fill_brewer(palette="Set1")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))                                                                                                                                          
+ggsave("Figures/Tree_size_change.png",width = 8,height=6,units = "in",dpi=300)
