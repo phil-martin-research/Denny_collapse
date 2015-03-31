@@ -50,8 +50,6 @@ summary(Model_avg)
 write.csv(Model_sel,"Figures/Mod_sel_Saplings.csv")
 
 
-<-expand.grid(Year2=as.factor(c(1964,2014)),Collapse3=as.factor(c(0,1)))
-
 #now predictions for >45cm
 new.data<-expand.grid(Year2=as.factor(c(1964,2014)),Collapse3=as.factor(c(0,1)))
 new.data$FS<-0
