@@ -49,7 +49,7 @@ AICc(M0.1,M1,M2,M3,M4)
 
 #create model selection output for these models
 Mod_list<-list(M0.1,M1,M2,M3,M4)
-Model_selection<-mod.sel(Mod_list)
+Model_selection<-model.sel(Mod_list)
 Model_selection$R2<-c(r.squaredGLMM(M1)[1],r.squaredGLMM(M2)[1],r.squaredGLMM(M3)[1],r.squaredGLMM(M4)[1],r.squaredGLMM(M0.1)[1])
 write.csv(Model_selection,"Figures/Mod_sel_Grass_change.csv")
 
@@ -80,6 +80,16 @@ tvar1 <-
 
 newdat$Collapse2<-as.numeric(as.character(newdat$Collapse2))
 newdat$Collapse3<-ifelse(newdat$Collapse2==1,"Collapsed at some point","Stable/Increasing for entire period")
+
+
+
+plogis((newdat$plo+newdat$Perc_C_trans))*100
+
+(plogis(newdat$plo+newdat$Perc_C_trans))/2
+
+
+(plogis(newdat$phi)-plogis(newdat$Perc_C_trans))/2
+
 
 #create plots of these
 dodge <- position_dodge(width=0.9)
