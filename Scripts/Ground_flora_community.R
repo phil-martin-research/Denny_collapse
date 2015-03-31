@@ -202,8 +202,7 @@ theme_set(theme_bw(base_size=12))
 Brack_plot1<-ggplot(Brack_Ab,aes(x=BAPERCM*100*(-1),y=value,colour=as.factor(Year)))+geom_point(shape=1,size=3)
 Brack_plot2<-Brack_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
 Brack_plot2+scale_colour_brewer("Year",palette ="Set1")+ylab("Percentage cover of bracken")+xlab("Percentage loss of basal area since 1964")
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
-ggsave("Bracken_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
+ggsave("Figure/Bracken_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
 
 
 
@@ -227,6 +226,7 @@ Mod_sel_brack$R_2<-c(r.squaredGLMM(M0)[1],r.squaredGLMM(M1)[1],r.squaredGLMM(M3)
                     r.squaredGLMM(M2)[1])
 Mod.avg_brack<-model.avg(Mod_sel_brack,subset= delta <7)
 summary(Mod.avg_brack)
+
 
 write.csv(Mod_sel_brack,"Figures/Mod_sel_brack.csv")
 ######################################################
