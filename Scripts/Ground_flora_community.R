@@ -95,10 +95,10 @@ BA_ab<-read.csv("Data/Grass_ab_BA.csv")
 BA_ab<-subset(BA_ab,Year>1964)
 
 BA_ab$Perc_C2<-(BA_ab$Perc_C/100)
-BA_ab$Perc_C2<-ifelse(BA_ab$Perc_C2>1,BA_ab$Perc_C2-0.02,BA_ab$Perc_C2+0.02)
+BA_ab$Perc_C2<-ifelse(BA_ab$Perc_C2>1,BA_ab$Perc_C2-0.02,BA_ab$Perc_C2+0.01)
 BA_ab$BAPERCM2<-BA_ab$BAPERCM*-1
 
-ggplot(BA_ab,aes(x=BAPERCM2,y=Perc_C2))+geom_point()+facet_wrap(~Year)+geom_smooth(method="lm")
+ggplot(BA_ab,aes(x=BAPERCM2,y=Perc_C2))+geom_point()+facet_wrap(~Year)+geom_smooth()
 
 #null model
 M0.1_G<-lmer(qlogis(Perc_C2)~1+(1|Block),data=BA_ab)
@@ -113,9 +113,9 @@ dotplot(ranef(M0.1_G,condVar=TRUE),
         lattice.options=list(layout=c(1,2)))
 
 #fixed effects models
-M1_G<-lmer(qlogis(Perc_C2)~BAPERCM2+(1|Block),data=BA_ab)
-M2_G<-lmer(qlogis(Perc_C2)~BAPERCM2+I(BAPERCM2^2)+(1|Block),data=BA_ab)
-M3_G<-lmer(qlogis(Perc_C2)~BAPERCM2+I(BAPERCM2^2)+I(BAPERCM2^3)+(1|Block),data=BA_ab)
+M1_G<-lmer(qlogis(Perc_C2)~BAPERCM2+(BAPERCM2|Year),data=BA_ab)
+M2_G<-lmer(qlogis(Perc_C2)~BAPERCM2+I(BAPERCM2^2)+(BAPERCM2|Year),data=BA_ab)
+M3_G<-lmer(qlogis(Perc_C2)~BAPERCM2+I(BAPERCM2^2)+I(BAPERCM2^3)+(BAPERCM2|Year),data=BA_ab)
 
 plot(M3_G)
 qqnorm(resid(M3_G))
@@ -123,41 +123,52 @@ qqnorm(resid(M3_G))
 summary(M3_G)
 
 
-Grass_models<-list(M1_G,M2_G,M3_G,M0.1_G)
+Grass_models<-list(M1_G,M2_G,M3_G,M0.4_G)
 
 #produce model selection table
 Grass_sel<-model.sel(Grass_models,REML=F,fit=T)
-Grass_sel$R_sq<-c(r.squaredGLMM(M3_G)[1],r.squaredGLMM(M2_G)[1],r.squaredGLMM(M1_G)[1],r.squaredGLMM(M0.1_G)[1])
+Grass_sel$R_sq<-c(r.squaredGLMM(M3_G)[1],r.squaredGLMM(M2_G)[1],r.squaredGLMM(M1_G)[1],r.squaredGLMM(M0.4_G)[1])
 write.csv(Grass_sel,"Figures/Mod_sel_Grass_grad.csv")
 
 #now get model averaged variables
-Grass_avg<-model.avg(Grass_sel,fit=T)
+Grass_avg<-model.avg(Grass_sel,fit=T,subset=delta<7)
 summary(Grass_avg)
 importance(Grass_avg)
+terms(Grass_sel)
+Grass_avg2<-summary(Grass_avg)  
 
 
-Grass_avg2<-(Grass_avg$avg.model)  
+BA_ab$Pred<-predict(Grass_avg,re.form=NA)
 
-?model.avg
+plogis(BA_ab$Pred)
 
-Grass_pred_se<-predict(Grass_avg,re.form=NA)
-Grass_pred_2<-predict(Grass_avg)
+#now create plots of this
+newdat<-expand.grid(BAPERCM2=seq(min(BA_ab$BAPERCM2),max(BA_ab$BAPERCM2),0.01))
+newdat$Perc_C2<-0
+
+mm <- model.matrix(terms(M3_G),newdat)
+newdat$Perc_C2 <- predict(Grass_avg,newdat,re.form=NA)
+pvar1 <- diag(mm %*% tcrossprod(vcov(M3_G),mm))
+tvar1 <- pvar1+VarCorr(M3_G)$Year[1]  ## must be adapted for more complex models
+  newdat <- data.frame(
+    newdat
+    , plo = newdat$Perc_C2-2*sqrt(pvar1)
+    , phi = newdat$Perc_C2+2*sqrt(pvar1)
+    , tlo = newdat$Perc_C2-2*sqrt(tvar1)
+    , thi = newdat$Perc_C2+2*sqrt(tvar1)
+  )
 
 
-plot(BA_ab$BAPERCM2,BA_ab$Perc_C2*100)
-points(BA_ab$BAPERCM2,(plogis(Grass_pred_se))*100,col="red")
-points(BA_ab$BAPERCM2,(plogis(Grass_pred_2))*100,col="blue")
 
 
-#change symbols for plot to give different ones for enclosed andd unenclosed plots
-BA_ab$Transect<-ifelse(Grass_ab$Block>=51,"Unenclosed","Enclosed")
 
 #plot this relationship
 theme_set(theme_bw(base_size=12))
-Grass_plot1<-ggplot(BA_ab,aes(x=BAPERCM2*100,y=PCC,colour=as.factor(Year)))+geom_point(shape=1,size=3)
+Grass_plot1<-ggplot(BA_ab,aes(x=BAPERCM2*100,y=Perc_C,colour=as.factor(Year)))+geom_point(shape=1,size=3)
 Grass_plot2<-Grass_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-Grass_plot3<-Grass_plot2+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=pred,colour=NULL),alpha=0.8)+ylab("Increase in grass cover since 1964")+xlab("Percentage loss of basal area since 1964")
-Grass_plot3+scale_colour_brewer("Year",palette ="Set1")+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=UCI,colour=NULL),lty=2,alpha=0.8)+geom_line(data=Grass_ab,aes(x=BAPERCM2*100,y=LCI,colour=NULL),lty=2,alpha=0.8)+xlim(-50,100)
+Grass_plot3<-Grass_plot2+geom_ribbon(data=newdat,aes(x=BAPERCM2*100,ymax=plogis(phi)*100,ymin=plogis(plo)*100,y=plogis(Perc_C2)*100),alpha=0.2,colour=NA)
+Grass_plot4<-Grass_plot3+geom_line(data=newdat,aes(x=BAPERCM2*100,y=plogis(Perc_C2)*100),colour="black",alpha=0.8)+ylab("Subplot grass cover (%)")+xlab("Percentage loss of basal area since 1964")
+Grass_plot4+scale_colour_brewer("Year",palette ="Set1")+xlim(-50,100)
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
 ggsave("Grass_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
 
@@ -202,7 +213,7 @@ ggsave("Bracken_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
 ######################################################
 
 #plot this over time
-ggplot(GF_Sp_R,aes(x=Year,y=freq,group=Block))+geom_line()
+ggplot(GF_Sp_R,aes(x=Year,y=freq,group=Block))+geom_line()+facet_wrap(~Block)
 
 #do a comparison of species richness in 1964 to that now
 head(GF_Sp_R)
@@ -228,6 +239,7 @@ GF_Sp_BA$Year2<-(GF_Sp_BA$Year-mean(GF_Sp_BA$Year))/sd(GF_Sp_BA$Year)
 
 head(GF_Sp_BA)
 
+
 #plot of relationship between species richness against collapse gradient
 #null model
 Rich_M0.1<-glmer(freq~1+(1|Block),data=GF_Sp_BA,family=poisson)
@@ -238,47 +250,41 @@ dotplot(ranef(Rich_M0.1,condVar=TRUE),
 #linear relationship - this is really the only logical relationship I can think of
 Rich_M1<-glmer(freq~BAPERCM2+(1|Block),data=GF_Sp_BA,family=poisson)
 Rich_M2<-glmer(freq~BAPERCM2+I(BAPERCM^2)+(1|Block),data=GF_Sp_BA,family=poisson)
-Rich_M3<-glmer(freq~BAPERCM2+I(BAPERCM^2)+I(BAPERCM^3)+(1|Block),data=GF_Sp_BA,family=poisson)
-summary(Rich_M2)
 
-summary(GF_Sp_BA)
 
-plot(Rich_M1)
-plot(Rich_M2)
-plot(Rich_M3)
-
-AICc(Rich_M0.1,Rich_M1,Rich_M2,Rich_M3)
-#the model is the best we have but doesn't say too much - the descriptive power is low
-#r squared <0.2
-Rich_models<-list(Rich_M1,Rich_M2,Rich_M3,Rich_M0.1)
+AICc(Rich_M0.1,Rich_M1,Rich_M2)
+Rich_models<-list(Rich_M1,Rich_M2,Rich_M0.1)
 
 Rich_sel<-model.sel(Rich_models,REML=F)
-Rich_sel$R_sq<-c(r.squaredGLMM(Rich_M2)[1],r.squaredGLMM(Rich_M3)[1],r.squaredGLMM(Rich_M1)[1],r.squaredGLMM(Rich_M0.2)[1])
+Rich_sel$R_sq<-c(r.squaredGLMM(Rich_M2)[1],r.squaredGLMM(Rich_M1)[1],r.squaredGLMM(Rich_M0.1)[1])
 
 Rich_avg<-model.avg(Rich_sel,subset=delta<7)
+summary(Rich_avg)
 
-Rich_pred_se<-predict(Rich_avg,re.form=NA)
+GF_Sp_BA$Pred<-predict(Rich_avg,re.form=NA)
+
 
 plot(GF_Sp_BA$BAPERCM2,GF_Sp_BA$freq)
 points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se),col="red")
 points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se$fit+(Rich_pred_se$se.fit*1.96))-1,col="red")
 points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se$fit-(Rich_pred_se$se.fit*1.96))-1,col="red")
 
-#put predictions into model
-GF_Sp_BA$pred<-exp(Rich_pred_se$fit)-1
-GF_Sp_BA$UCI<-exp(Rich_pred_se$fit+(Rich_pred_se$se.fit*1.96))-1
-GF_Sp_BA$LCI<-exp(Rich_pred_se$fit-(Rich_pred_se$se.fit*1.96))-1
+
+
+write.csv(Rich_sel,"Figures/Mod_sel_Spr_GF.csv")
 
 
 
 #plot richness against BA
 theme_set(theme_bw(base_size=12))
-Rich_BA<-ggplot(GF_Sp_BA,aes(x=BAPERCM2*100,y=(exp(PSpR)-1)*100))+geom_point(shape=1,size=3,aes(colour=as.factor(Year)))
-Rich_BA2<-Rich_BA+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+ylab("Percentage change ground flora species richness since 1964")+xlab("Percentage loss of basal area since 1964")
-Rich_BA3<-Rich_BA2+geom_line(data=GF_Sp_BA,aes(x=BAPERCM2*100,y=pred*100))+scale_colour_brewer(name="Year",palette ="Set1")
-Rich_BA3+geom_line(data=GF_Sp_BA,aes(x=BAPERCM2*100,y=UCI*100),lty=2,alpha=0.8)+geom_line(data=GF_Sp_BA,aes(x=BAPERCM2*100,y=LCI*100),lty=2,alpha=0.8)
+ggplot(GF_Sp_BA,aes(x=BAM,y=freq))+geom_point(shape=1,size=3,aes(colour=as.factor(Year)))
+
+Rich_BA<-ggplot(GF_Sp_BA,aes(x=BAPERCM2*100,y=freq))+geom_point(shape=1,size=3,aes(colour=as.factor(Year)))
+Rich_BA2<-Rich_BA+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+ylab("Subplot ground flora species richness")+xlab("Percentage loss of basal area since 1964")
+Rich_BA3<-Rich_BA2+geom_line(data=GF_Sp_BA,aes(x=BAPERCM2*100,y=exp(Pred)))+scale_colour_brewer(name="Year",palette ="Set1")
+Rich_BA3
 setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
-ggsave("GF_SPR_change.png",width = 8,height=6,units = "in",dpi=300)
+ggsave("GF_SPR.png",width = 8,height=6,units = "in",dpi=300)
 
 
 
