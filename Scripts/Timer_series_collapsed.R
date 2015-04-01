@@ -97,4 +97,5 @@ BA_plot2+scale_fill_brewer(palette="Set1")+theme(panel.grid.major = element_blan
 ggsave("Figures/Collapse_BA_TS2.png",width = 8,height=6,units = "in",dpi=300)
 
 
-
+plogis(-5.324)
+plogis(0.748)
