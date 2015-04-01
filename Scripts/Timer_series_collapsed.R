@@ -96,3 +96,5 @@ BA_plot2<-BA_plot+xlab("Year")+ theme(legend.position = "none")+ylab(expression(
 BA_plot2+scale_fill_brewer(palette="Set1")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))                                                                                                                                          
 ggsave("Figures/Collapse_BA_TS2.png",width = 8,height=6,units = "in",dpi=300)
 
+
+
