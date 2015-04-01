@@ -47,6 +47,8 @@ Model_sel$R_2<-c(r.squaredGLMM(M1)[1])
 Model_avg<-model.avg(Model_sel)
 summary(Model_avg)
 
+r.squaredGLMM(x=M0)[1]
+
 write.csv(Model_sel,"Figures/Mod_sel_Saplings.csv")
 
 
