@@ -29,8 +29,11 @@ for (i in 1:length(Block_unique)){
 #calculate the proportion of BA represented by oak
 BA2$Prop_Q<-BA2$Q_BA/BA2$BAM
 BA2$Prop_I<-BA2$I_BA/BA2$BAM
+BA2$Prop_F<-BA2$F_BA/BA2$BAM
+
 ggplot(BA2,aes(x=Year,y=Prop_Q))+geom_point()+geom_smooth(se=F,method="glm")+facet_wrap(~Collapse2)
 ggplot(BA2,aes(x=Year,y=Prop_I))+geom_point()+geom_smooth(se=F,method="glm")+facet_wrap(~Collapse2)
+ggplot(BA2,aes(x=Year,y=Prop_F))+geom_point()+geom_smooth(se=F,method="glm")+facet_wrap(~Collapse2)
 
 #now produce models of change in proportion of Oak BA
 BA3<-subset(BA2,Year==1964|Year==2014)
