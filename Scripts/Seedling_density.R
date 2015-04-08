@@ -1,4 +1,4 @@
-#seeedling analysis
+#seedling analysis
 rm(list=ls(all=TRUE))
 Seedlings<-read.csv("Data/Seedlings_denny.csv",header = T,stringsAsFactors=F)
 BA<-read.csv("Data/BA_gradient.csv",header = T,stringsAsFactors=F)
