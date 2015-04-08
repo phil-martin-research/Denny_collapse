@@ -11,7 +11,6 @@ library(MuMIn)
 
 #load data
 Plots<-read.csv("Data/Denny_plots.csv")
-
 head(Plots)
 
 #add column for tanner index
@@ -37,65 +36,101 @@ Plots3<-Plots2[keeps]
 Plots4<-rbind(data.frame(Block=c(7,7),Year=c(1996,2014),Tanner=c(0,0),BAPERCM=c(-1,-1),Collapse2=c(1,1),BAM=c(0,0)),Plots3)
 
 #now do analysis of this
-#create variable for BAPERCM that is bounded above -1
-Plots4<-subset(Plots4,Year==1964|Year==2014)
-#create a variable of number of years since 1964
-Plots4$Year2<-as.factor(Plots4$Year)
-Plots4$Collapse2<-as.factor(Plots4$Collapse2)
+#first looking at the collapsed plots
+Plots4$Year2<-Plots4$Year-1964
+Plots_coll<-subset(Plots4,Collapse2==1)
+Plots_stable<-subset(Plots4,Collapse2==0)
 
-#now a null model
-M0<-lmer(BAM~1+(1|Block),data=Plots4)
+
+#first run a null model
+M0_coll<-lmer(BAM~1+(1|Block),data=Plots_coll)
 #use first random effect specification
-M1<-lmer(BAM~Year2+(1|Block),data=Plots4)
-M2<-lmer(BAM~Collapse2+(1|Block),data=Plots4)
-M3<-lmer(BAM~Year2+Collapse2+(1|Block),data=Plots4)
-M4<-lmer(BAM~Year2*Collapse2+(1|Block),data=Plots4)
-
-Models<-list(M0,M1,M2,M3,M4)
+M1_coll<-lmer(BAM~Year2+(1|Block),data=Plots_coll)
+M2_coll<-lmer(BAM~Year2+I(Year2^2)+(1|Block),data=Plots_coll)
+M3_coll<-lmer(BAM~Year2+I(Year2^2)+I(Year2^3)+(1|Block),data=Plots_coll)
+Models<-list(M0_coll,M1_coll,M2_coll,M3_coll)
 
 #produce tables to give summary statistics
 Model_table<-model.sel(Models)
-Model_table$R_sq<-c(r.squaredGLMM(M4)[1],r.squaredGLMM(M3)[1],r.squaredGLMM(M1)[1],r.squaredGLMM(M2)[1],r.squaredGLMM(M0)[1])
+Model_table$R_sq<-c(r.squaredGLMM(M1_coll)[1],r.squaredGLMM(M2_coll)[1],r.squaredGLMM(M3_coll)[1],r.squaredGLMM(M0_coll)[1])
 
-write.csv(Model_table,"Figures/BA_TS_table.csv",row.names=F)
+write.csv(Model_table,"Figures/BA_TS_table_coll.csv",row.names=F)
 
-coefs <- data.frame(coef(summary(M4)))
-# use normal distribution to approximate p-value
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
-
-write.csv(coefs,"Figures/BA_TS_coefs.csv")
-
+Model_average<-model.avg(Models,fit=T)
+summary(Model_average)
 
 #put in predictions
-newdat<-expand.grid(Year2=as.factor(c(1964,2014)),Collapse2=as.factor(c(0,1)))
+newdat<-expand.grid(Year2=(seq(0,50,0.1)))
 newdat$BAM<-0
 
-mm <- model.matrix(terms(M4),newdat)
-newdat$BAM <- predict(M4,newdat,re.form=NA)
-## or newdat$distance <- mm %*% fixef(fm1)
-pvar1 <- diag(mm %*% tcrossprod(vcov(M4),mm))
-tvar1 <- pvar1+VarCorr(M4)$Block[1]  ## must be adapted for more complex models
-  newdat <- data.frame(
-    newdat
-    , plo = newdat$BAM-2*sqrt(pvar1)
-    , phi = newdat$BAM+2*sqrt(pvar1)
-    , tlo = newdat$BAM-2*sqrt(tvar1)
-    , thi = newdat$BAM+2*sqrt(tvar1)
-  )
+mm <- model.matrix(terms(M3_coll),newdat)
+newdat$BAM <- predict(Model_average,newdat,re.form=NA)
+pvar1 <- diag(mm %*% tcrossprod(vcov(M3_coll),mm))
+tvar1 <- pvar1+VarCorr(M3_coll)$Block[1]  ## must be adapted for more complex models
+newdat <- data.frame(
+  newdat
+  , plo = newdat$BAM-2*sqrt(pvar1)
+  , phi = newdat$BAM+2*sqrt(pvar1)
+  , tlo = newdat$BAM-2*sqrt(tvar1)
+  , thi = newdat$BAM+2*sqrt(tvar1)
+)
 
 
-newdat$Collapse3<-ifelse(newdat$Collapse2==1,"Collapsed","Stable")
+newdat$Year<-newdat$Year2+1964
+newdat$Collapse2<-1
+newdat$Collapse3<-"Collapsed"
 
+#now do the same for stable plots
+#first run a null model
+M0_stab<-lmer(BAM~1+(1|Block),data=Plots_stable)
+#use first random effect specification
+M1_stab<-lmer(BAM~Year2+(1|Block),data=Plots_stable)
+M2_stab<-lmer(BAM~Year2+I(Year2^2)+(1|Block),data=Plots_stable)
+M3_stab<-lmer(BAM~Year2+I(Year2^2)+I(Year2^3)+(1|Block),data=Plots_stable)
+Models<-list(M0_stab,M1_stab,M2_stab,M3_stab)
+
+#produce tables to give summary statistics
+Model_table<-model.sel(Models)
+Model_table$R_sq<-c(r.squaredGLMM(M1_stab)[1],r.squaredGLMM(M2_stab)[1],r.squaredGLMM(M3_stab)[1],r.squaredGLMM(M0_stab)[1])
+
+write.csv(Model_table,"Figures/BA_TS_table_stable.csv",row.names=F)
+
+Model_average_stab<-model.avg(Models,fit=T)
+summary(Model_average_stab)
+
+#now produce predictions
+newdat2<-expand.grid(Year2=(seq(0,50,0.1)))
+newdat2$BAM<-0
+
+mm <- model.matrix(terms(M3_stab),newdat2)
+newdat2$BAM <- predict(Model_average_stab,newdat2,re.form=NA)
+pvar1 <- diag(mm %*% tcrossprod(vcov(M3_stab),mm))
+tvar1 <- pvar1+VarCorr(M3_stab)$Block[1]  ## must be adapted for more complex models
+newdat2 <- data.frame(
+  newdat2
+  , plo = newdat2$BAM-2*sqrt(pvar1)
+  , phi = newdat2$BAM+2*sqrt(pvar1)
+  , tlo = newdat2$BAM-2*sqrt(tvar1)
+  , thi = newdat2$BAM+2*sqrt(tvar1)
+)
+
+
+newdat2$Year<-newdat2$Year2+1964
+newdat2$Collapse2<-0
+newdat2$Collapse3<-"Stable"
+
+Predictions<-rbind(newdat,newdat2)
+
+#now plot these predictions
+Plots4$Collapse3<-ifelse(Plots4$Collapse2==1,"Collapsed","Stable")
+Plots4$Transect<-ifelse(Plots4$Block>50,"Open","Fenced")
 
 labels<-data.frame(x=min(Plots4$Year)+1,y=max(Plots$BAM)-1,Collapse3=c("Collapsed","Stable"),labs=c("(a)","(b)"))
 theme_set(theme_bw(base_size=12))
-dodge <- position_dodge(width=0.9)
-BA_plot<-ggplot(newdat,aes(x=Year2,y=BAM,ymax=phi,ymin=plo,fill=Collapse2))+geom_bar(stat="identity",position =dodge)+geom_errorbar(position =dodge,width=0.25)
-BA_plot2<-BA_plot+xlab("Year")+ theme(legend.position = "none")+ylab(expression(paste("Basal area (", m^bold("2"),ha^bold("-1"),")")))
-BA_plot2+scale_fill_brewer(palette="Set1")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))                                                                                                                                          
-ggsave("Figures/Collapse_BA_TS2.png",width = 8,height=6,units = "in",dpi=300)
-
-
-plogis(-5.324)
-plogis(0.748)
+BA_Coll1<-ggplot(data=Plots4,size=2,alpha=0.3,aes(group=Block,shape=Transect,x=Year,y=BAM))+geom_point(alpha=0.3)+geom_line(alpha=0.3)+facet_wrap(~Collapse3)
+BA_Coll2<-BA_Coll1+geom_ribbon(data=Predictions,aes(ymax=phi,ymin=plo,group=NULL,shape=NULL),alpha=0.4)+geom_line(data=Predictions,aes(group=Collapse3,shape=NULL,y=BAM),size=2)
+BA_Coll3<-BA_Coll2+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+BA_Coll4<-BA_Coll3+ylab(expression(paste("Basal area (", m^bold("2"),ha^bold("-1"),")")))
+BA_Coll4+theme(strip.background = element_blank(),strip.text.x = element_blank())+
+geom_text(data=labels,aes(shape=NULL,x=x,y=y,label=labs, group=NULL),colour="black")
+ggsave("Figures/Collapse_BA_TS.png",width = 8,height=6,units = "in",dpi=300)
