@@ -5,6 +5,7 @@
 rm(list=ls(all=TRUE))
 BA<-read.csv("Data/BA_tree_ab.csv")
 head(BA)
+BA$Transect<-ifelse(BA$Block>51,"Unenclosed","Enclosed")
 #load packages
 library(ggplot2)
 library(lme4)
@@ -31,12 +32,27 @@ BA2$Prop_Q<-BA2$Q_BA/BA2$BAM
 BA2$Prop_I<-BA2$I_BA/BA2$BAM
 BA2$Prop_F<-BA2$F_BA/BA2$BAM
 
-ggplot(BA2,aes(x=Year,y=Prop_Q))+geom_point()+geom_smooth(se=F,method="glm")+facet_wrap(~Collapse2)
-ggplot(BA2,aes(x=Year,y=Prop_I))+geom_point()+geom_smooth(se=F,method="glm")+facet_wrap(~Collapse2)
-ggplot(BA2,aes(x=Year,y=Prop_F))+geom_point()+geom_smooth(se=F,method="glm")+facet_wrap(~Collapse2)
+ggplot(BA2,aes(x=BAPERCM,y=Prop_Q))+geom_point()+geom_smooth(se=F,method="glm")+facet_wrap(~Year)
+ggplot(BA2,aes(x=BAPERCM,y=Prop_I))+geom_point()+geom_smooth(se=F,method="glm")+facet_wrap(~Year)
+ggplot(BA2,aes(x=BAPERCM,y=Prop_F))+geom_point()+geom_smooth(se=F,method="glm")+facet_wrap(~Year)
+
+#now as boxplots
+ggplot(BA2,aes(colour=as.factor(Collapse2),y=Prop_Q,x=as.factor(Year)))+geom_violin()
+ggplot(BA2,aes(colour=as.factor(Collapse2),y=Prop_I,x=as.factor(Year)))+geom_violin()
+ggplot(BA2,aes(colour=as.factor(Collapse2),y=Prop_F,x=as.factor(Year)))+geom_violin()
+
+
 
 #now produce models of change in proportion of Oak BA
 BA3<-subset(BA2,Year==1964|Year==2014)
+
+#
+std <- function(x) sd(x)/sqrt(length(x))
+ddply(BA3,.(Year,Collapse2),summarize,Oak=mean(Prop_Q),Oak_SE=std(Prop_Q),
+      Holly=mean(Prop_I),Holly_SE=std(Prop_I),Beech=mean(Prop_F),Beech_SE=std(Prop_F))
+
+
+
 BA3$Q_PT<-qlogis(BA3$Prop_Q+0.01)
 BA3$Year2<-as.factor(BA3$Year)
 BA3$Collapse3<-as.factor(BA3$Collapse2)
@@ -88,12 +104,10 @@ Oak_plot2+scale_fill_brewer(palette="Set1")+theme(panel.grid.major = element_bla
 ggsave("Figures/Oak_prop_collapse.png",width = 8,height=6,units = "in",dpi=300)
 
 
-#now produce models of change in proportion of Oak BA
-BA3<-subset(BA2,Year==1964|Year==2014)
+#now produce models of change in proportion of holly BA
 BA3$I_PT<-ifelse(BA3$Prop_I==0,BA3$Prop_I+0.01,BA3$Prop_I)
 BA3$I_PT<-ifelse(BA3$Prop_I==1,BA3$Prop_I-0.01,BA3$I_PT)
 BA3$I_PT<-qlogis(BA3$I_PT)
-
 
 #now model this
 M0<-lmer(I_PT~1+(1|Block),data=BA3)
@@ -101,6 +115,8 @@ M1<-lmer(I_PT~Year2*Collapse3+(1|Block),data=BA3)
 M2<-lmer(I_PT~Year2+Collapse3+(1|Block),data=BA3)
 M3<-lmer(I_PT~Year2+(1|Block),data=BA3)
 M4<-lmer(I_PT~Collapse3+(1|Block),data=BA3)
+M5<-lmer(I_PT~Transect+(1|Block),data=BA3)
+M6<-lmer(I_PT~Transect*Year2+(1|Block),data=BA3)
 
 model_list<-list(M0,M1,M2,M3,M4)
 Model_sel<-model.sel(model_list)
@@ -141,3 +157,22 @@ Holly_plot2<-Holly_plot+ylab("Proportion of plot BA represented by holly")+xlab(
 Holly_plot2+scale_fill_brewer(palette="Set1")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))                                                                                                                                          
 ggsave("Figures/Holly_prop_collapse.png",width = 8,height=6,units = "in",dpi=300)
 
+
+#now do the same for beech
+#now produce models of change in proportion of holly BA
+BA3$F_PT<-ifelse(BA3$Prop_F==0,BA3$Prop_F+0.01,BA3$Prop_F)
+BA3$F_PT<-ifelse(BA3$Prop_F==1,BA3$Prop_F-0.01,BA3$F_PT)
+BA3$F_PT<-qlogis(BA3$F_PT)
+
+#now model this
+M0<-lmer(F_PT~1+(1|Block),data=BA3)
+M1<-lmer(F_PT~Year2*Collapse3+(1|Block),data=BA3)
+M2<-lmer(F_PT~Year2+Collapse3+(1|Block),data=BA3)
+M3<-lmer(F_PT~Year2+(1|Block),data=BA3)
+M4<-lmer(F_PT~Collapse3+(1|Block),data=BA3)
+
+model_list<-list(M0,M1,M2,M3,M4)
+Model_sel<-model.sel(model_list)
+Model_sel$R_2<-c(r.squaredGLMM(M4)[1],r.squaredGLMM(M0)[1],r.squaredGLMM(M2)[1],r.squaredGLMM(M1)[1],r.squaredGLMM(M3)[1])
+Model_avg<-model.avg(Model_sel,subset = delta<=7)
+summary(Model_avg)
