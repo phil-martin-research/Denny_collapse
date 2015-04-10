@@ -32,6 +32,8 @@ ggplot(data=Browsing_BA,aes(x=BAPERCM,y=Horse_dung))+geom_point()+geom_smooth(me
 ggplot(data=Browsing_BA,aes(x=BAPERCM,y=Canopy_open))+geom_point()+geom_smooth(method=lm)
 
 
+
+
 #the only relationship that looks any good is
 #that between deer dung anf basal area change
 Browsing_BA$Deer_dung2<-round(Browsing_BA$Deer_dung,0)
@@ -40,6 +42,8 @@ M0<-glm(Deer_dung2~1,data=Browsing_BA,family=poisson)
 M1<-glm(Deer_dung2~BAPERCM,data=Browsing_BA,family=poisson)
 M2<-glm(Deer_dung2~BAPERCM+I(BAPERCM^2),data=Browsing_BA,family=poisson)
 par(mfrow=c(1,1))
+
+1-(2211/2300)
 
 
 plot(Browsing_BA$BAPERCM,Browsing_BA$Deer_dung2)
