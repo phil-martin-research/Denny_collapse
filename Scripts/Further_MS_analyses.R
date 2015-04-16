@@ -227,5 +227,5 @@ SD_TS1<-ggplot(PlotsSD_2,aes(x=Year,y=SDM*25,shape=Transect))+geom_point(alpha=0
 SD_TS2<-SD_TS1+geom_ribbon(data=newdat,aes(ymax=(exp(phi))*25,ymin=(exp(plo))*25,shape=NULL),alpha=0.4)+geom_line(data=newdat,size=1,aes(y=(exp(SDM))*25,shape=NULL))
 SD_TS3<-SD_TS2+theme(strip.background = element_blank(),strip.text.x = element_blank(),legend.position="none")+
   geom_text(data=labels,aes(shape=NULL,x=x,y=y,label=labs, group=NULL),colour="black")                                                                                                                                            
-SD_TS3+ylab(expression(paste("Number of stems >10cm dbh ",ha^bold("-1"))))+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+SD_TS3+ylab(expression(paste("Number of stems >10cm DBH ",ha^bold("-1"))))+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
 ggsave("Figures/Collapse_SD_TS.png",width = 8,height=4,units = "in",dpi=800)
