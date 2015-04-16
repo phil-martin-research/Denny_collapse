@@ -127,10 +127,10 @@ Plots4$Transect<-ifelse(Plots4$Block>50,"Open","Fenced")
 
 labels<-data.frame(x=min(Plots4$Year)+1,y=max(Plots$BAM)-1,Collapse3=c("Collapsed","Stable"),labs=c("(a)","(b)"))
 theme_set(theme_bw(base_size=12))
-BA_Coll1<-ggplot(data=Plots4,size=2,alpha=0.3,aes(group=Block,shape=Transect,x=Year,y=BAM))+geom_point(alpha=0.3)+geom_line(alpha=0.3)+facet_wrap(~Collapse3)
+BA_Coll1<-ggplot(data=Plots4,size=2,alpha=0.1,aes(group=Block,shape=Transect,x=Year,y=BAM))+geom_point(alpha=0.1)+geom_line(alpha=0.1)+facet_wrap(~Collapse3)
 BA_Coll2<-BA_Coll1+geom_ribbon(data=Predictions,aes(ymax=phi,ymin=plo,group=NULL,shape=NULL),alpha=0.4)+geom_line(data=Predictions,aes(group=Collapse3,shape=NULL,y=BAM),size=2)
 BA_Coll3<-BA_Coll2+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
 BA_Coll4<-BA_Coll3+ylab(expression(paste("Basal area (", m^bold("2"),ha^bold("-1"),")")))
-BA_Coll4+theme(strip.background = element_blank(),strip.text.x = element_blank())+
+BA_Coll4+theme(strip.background = element_blank(),strip.text.x = element_blank(),legend.position="none")+
 geom_text(data=labels,aes(shape=NULL,x=x,y=y,label=labs, group=NULL),colour="black")
-ggsave("Figures/Collapse_BA_TS.png",width = 8,height=6,units = "in",dpi=300)
+ggsave("Figures/Collapse_BA_TS.png",width = 8,height=4,units = "in",dpi=800)
