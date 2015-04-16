@@ -10,6 +10,7 @@ library(vegan)
 library(reshape2)
 library(lme4)
 library(MuMIn)
+library(gridExtra)
 
 
 #load in data
@@ -159,18 +160,15 @@ tvar1 <- pvar1+VarCorr(M3_G)$Year[1]  ## must be adapted for more complex models
   )
 
 
-
-
-
 #plot this relationship
 theme_set(theme_bw(base_size=12))
 Grass_plot1<-ggplot(BA_ab,aes(x=BAPERCM2*100,y=Perc_C,colour=as.factor(Year)))+geom_point(shape=1,size=3)
 Grass_plot2<-Grass_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
 Grass_plot3<-Grass_plot2+geom_ribbon(data=newdat,aes(x=BAPERCM2*100,ymax=plogis(phi)*100,ymin=plogis(plo)*100,y=plogis(Perc_C2)*100),alpha=0.2,colour=NA)
 Grass_plot4<-Grass_plot3+geom_line(data=newdat,aes(x=BAPERCM2*100,y=plogis(Perc_C2)*100),colour="black",alpha=0.8)+ylab("Subplot grass cover (%)")+xlab("Percentage loss of basal area since 1964")
-Grass_plot4+scale_colour_brewer("Year",palette ="Set1")+xlim(-50,100)
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
-ggsave("Grass_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
+Grass_plot5<-Grass_plot4+scale_colour_brewer("Year",palette ="Set1")+xlim(-50,100)+theme(legend.position="none")
+Grass_plot5
+ggsave("Figures/Grass_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
 
 #######################################################
 #analysis of bracken cover#############################
@@ -270,7 +268,7 @@ dotplot(ranef(Rich_M0.1,condVar=TRUE),
 
 #linear relationship - this is really the only logical relationship I can think of
 Rich_M1<-glmer(freq~BAPERCM2+(1|Block),data=GF_Sp_BA,family=poisson)
-Rich_M2<-glmer(freq~BAPERCM2+I(BAPERCM^2)+(1|Block),data=GF_Sp_BA,family=poisson)
+Rich_M2<-glmer(freq~BAPERCM2+I(BAPERCM2^2)+(1|Block),data=GF_Sp_BA,family=poisson)
 
 
 AICc(Rich_M0.1,Rich_M1,Rich_M2)
@@ -278,21 +276,25 @@ Rich_models<-list(Rich_M1,Rich_M2,Rich_M0.1)
 
 Rich_sel<-model.sel(Rich_models,REML=F)
 Rich_sel$R_sq<-c(r.squaredGLMM(Rich_M2)[1],r.squaredGLMM(Rich_M1)[1],r.squaredGLMM(Rich_M0.1)[1])
-
 Rich_avg<-model.avg(Rich_sel,subset=delta<7)
 summary(Rich_avg)
-
-GF_Sp_BA$Pred<-predict(Rich_avg,re.form=NA)
-
-
-plot(GF_Sp_BA$BAPERCM2,GF_Sp_BA$freq)
-points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se),col="red")
-points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se$fit+(Rich_pred_se$se.fit*1.96))-1,col="red")
-points(GF_Sp_BA$BAPERCM2,exp(Rich_pred_se$fit-(Rich_pred_se$se.fit*1.96))-1,col="red")
-
-
-
 write.csv(Rich_sel,"Figures/Mod_sel_Spr_GF.csv")
+
+#now create plots of this
+newdat_grass<-data.frame(BAPERCM2=seq(min(GF_Sp_BA$BAPERCM2),max(GF_Sp_BA$BAPERCM2),0.01))
+newdat_grass$freq<-0
+
+mm <- model.matrix(terms(Rich_M2),newdat_grass)
+newdat_grass$freq <- predict(Rich_avg,newdat_grass,re.form=NA)
+pvar1 <- diag(mm %*% tcrossprod(vcov(Rich_M2),mm))
+tvar1 <- pvar1+VarCorr(Rich_M2)$Block[1]  ## must be adapted for more complex models
+newdat_grass <- data.frame(
+  newdat_grass
+  , plo = newdat_grass$freq-2*sqrt(pvar1)
+  , phi = newdat_grass$freq+2*sqrt(pvar1)
+  , tlo = newdat_grass$freq-2*sqrt(tvar1)
+  , thi = newdat_grass$freq+2*sqrt(tvar1)
+)
 
 
 
@@ -302,10 +304,17 @@ ggplot(GF_Sp_BA,aes(x=BAM,y=freq))+geom_point(shape=1,size=3,aes(colour=as.facto
 
 Rich_BA<-ggplot(GF_Sp_BA,aes(x=BAPERCM2*100,y=freq))+geom_point(shape=1,size=3,aes(colour=as.factor(Year)))
 Rich_BA2<-Rich_BA+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+ylab("Subplot ground flora species richness")+xlab("Percentage loss of basal area since 1964")
-Rich_BA3<-Rich_BA2+geom_line(data=GF_Sp_BA,aes(x=BAPERCM2*100,y=exp(Pred)))+scale_colour_brewer(name="Year",palette ="Set1")
-Rich_BA3
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Figures")
-ggsave("GF_SPR.png",width = 8,height=6,units = "in",dpi=300)
+Rich_BA3<-Rich_BA2+geom_ribbon(data=newdat_grass,aes(ymax=exp(phi),ymin=exp(plo),group=NULL,shape=NULL),alpha=0.2)+geom_line(data=newdat_grass,aes(x=BAPERCM2*100,y=exp(freq)))+scale_colour_brewer(name="Year",palette ="Set1")
+Rich_BA3+theme(legend.position="none")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+ggsave("Figures/GF_SPR.png",width = 8,height=6,units = "in",dpi=300)
+
+#create plot combining grass cover and species richness plots 
+Grass_plot6<-Grass_plot5+theme(legend.position="none")+annotate("text",x=-50,y=100,label="(a)")
+Rich_BA4<-Rich_BA3+theme(legend.position="none")+annotate("text",x=-50,y=20,label="(b)")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+
+png("Figures/Grass_cov_richness.png",width = 10,height = 6,units = "in",res = 600)
+grid.arrange( Grass_plot6, Rich_BA4, ncol=2)
+dev.off()
 
 
 
@@ -363,54 +372,4 @@ setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse
 ggsave("GF_Sorenson.png",width = 8,height=6,units = "in",dpi=300)
 
 
-#########################################################
-#produce a NDMS plot of changes in composition###########
-#########################################################
 
-str(GF2)
-
-drops<-c("Block","Year","Ground_cover")
-GF2<-GF[,!(names(GF) %in% drops)]
-GF2$Sum<-rowSums(GF2)
-GF2$Agrostis.spp.<-ifelse(GF2$Sum==0,1,GF2$Agrostis.spp.)
-GF2<-subset(GF2,Sum>0)
-drops<-c("Sum")
-GF3<-GF2[,!(names(GF2) %in% drops)]
-
-
-#create NMDS
-vare.dis <- vegdist(GF3)
-vare.mds0 <- isoMDS(vare.dis)
-
-stressplot(vare.mds0, vare.dis)
-
-NMDS<-as.data.frame(vare.mds0)
-NMDS$Block<-GF$Block
-NMDS$Year<-GF$Year
-
-#merge to data on basal area
-keeps<-c("Block","Year","BAPERCM")
-BA3<-BA[keeps]
-
-head(NMDS)
-
-NMDS2<-merge(NMDS,BA3,by=c("Block","Year"))
-
-Groups<-data.frame(max=c(-0.75,-0.50,-0.25,0,3),min=c(-1.00,-0.75,-0.50,-0.25,0),group=c("100-75%","75-50%","50-25%","25-0%","0-216% increase"))
-head(BA)
-BA_groups<-NULL
-for(i in 1:nrow(Groups)){
-  BA2<-subset(NMDS2,NMDS2$BAPERCM>Groups[i,2]&NMDS2$BAPERCM<Groups[i,1])
-  BA2$Group<-Groups[i,3]
-  BA_groups<-rbind(BA_groups,BA2)
-}
-
-NMDS2
-
-
-#now plot this ndms
-theme_set(theme_bw(base_size=12))
-NDMS_plot1<-ggplot(BA_groups,aes(x=points.1,y=points.2,shape=Group))+geom_point(alpha=0.5)+facet_grid(Group~Year)
-NDMS_plot2<-NDMS_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-NDMS_plot2
-ggsave("Figures/NDMS_GF.png",width = 10,height=10,units = "in",dpi=300)
