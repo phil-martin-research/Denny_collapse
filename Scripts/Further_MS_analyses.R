@@ -220,9 +220,12 @@ head(PlotsSD_2)
 
 
 #plot in ggplot
+labels<-data.frame(x=min(PlotsSD_2$Year)+1,y=max(PlotsSD_2$SDM*25)-10,Collapse3=c("Collapsed","Stable/Increasing"),labs=c("(a)","(b)"))
+PlotsSD_2$Transect<-ifelse(PlotsSD_2$Block>51,"Open","Closed")
 theme_set(theme_bw(base_size=12))
-SD_TS1<-ggplot(PlotsSD_2,aes(x=Year,y=SDM*25))+geom_point(shape=1,alpha=0.3)+geom_line(aes(group=Block,size=NULL),alpha=0.3)+facet_wrap(~Collapse3)
-SD_TS2<-SD_TS1+geom_ribbon(data=newdat,aes(ymax=(exp(phi))*25,ymin=(exp(plo))*25),alpha=0.4)+geom_line(data=newdat,size=3,aes(y=(exp(SDM))*25))
-SD_TS3<-SD_TS2+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))+ theme(legend.position="none")                                                                                                                                            
-SD_TS3+ylab(expression(paste("Number of stems >10cm dbh ",ha^bold("-1"))))
-ggsave("Figures/Collapse_SD_TS.png",width = 8,height=6,units = "in",dpi=300)
+SD_TS1<-ggplot(PlotsSD_2,aes(x=Year,y=SDM*25,shape=Transect))+geom_point(alpha=0.1)+geom_line(aes(group=Block,size=NULL),alpha=0.1)+facet_wrap(~Collapse3)
+SD_TS2<-SD_TS1+geom_ribbon(data=newdat,aes(ymax=(exp(phi))*25,ymin=(exp(plo))*25,shape=NULL),alpha=0.4)+geom_line(data=newdat,size=1,aes(y=(exp(SDM))*25,shape=NULL))
+SD_TS3<-SD_TS2+theme(strip.background = element_blank(),strip.text.x = element_blank(),legend.position="none")+
+  geom_text(data=labels,aes(shape=NULL,x=x,y=y,label=labs, group=NULL),colour="black")                                                                                                                                            
+SD_TS3+ylab(expression(paste("Number of stems >10cm dbh ",ha^bold("-1"))))+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
+ggsave("Figures/Collapse_SD_TS.png",width = 8,height=4,units = "in",dpi=800)
