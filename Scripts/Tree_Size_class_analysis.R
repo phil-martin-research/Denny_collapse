@@ -290,11 +290,11 @@ SD_Preds$Size_Class2<-factor(SD_Preds$Size_Class2, c(">45cm", "25-45cm", "15-25c
 #create plots of sd changes
 dodge <- position_dodge(width=0.9)
 labels<-data.frame(lab=c("(a)","(b)","(c)","(d)"),x=0.5,y=5,Size_Class2=as.factor(c(">45cm","25-45cm","15-25cm","10-15cm")))
-SD_plot<-ggplot(SD_Preds,aes(x=Year2,y=(exp(SD)),ymin=(exp(LCI)),ymax=(exp(UCI)),fill=Collapse2))+
+SD_plot<-ggplot(SD_Preds,aes(x=Year2,y=(exp(SD))*25,ymin=(exp(LCI))*25,ymax=(exp(UCI))*25,fill=Collapse2))+
   geom_bar(stat="identity",position =dodge)+geom_errorbar(position =dodge,width=0.25)
 SD_plot2<-SD_plot+ylab("Plot stem density")+xlab("Year")+ theme(legend.position = "none") 
 SD_plot3<-SD_plot2+scale_fill_brewer(palette="Set1")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))                                                                                                                                          
-SD_plot3+geom_text(data=labels,aes(x=x,y=y,label=lab,ymax=NULL,ymin=NULL,fill=NULL,group=NULL),colour="black")+facet_wrap(~Size_Class2,ncol=2)
+SD_plot3+geom_text(data=labels,aes(x=x,y=y*25,label=lab,ymax=NULL,ymin=NULL,fill=NULL,group=NULL),colour="black")+facet_wrap(~Size_Class2,ncol=2)
 ggsave("Figures/Tree_size_change.png",width = 8,height=6,units = "in",dpi=300)
 
 exp(1.019831411+0.199408866)
