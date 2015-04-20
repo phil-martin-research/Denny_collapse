@@ -80,7 +80,7 @@ new.data$LCI[4]<-new.data$SDS[4]-(1.96*Coefs2[4,3])
 #now plot these results
 theme_set(theme_bw(base_size=12))
 dodge <- position_dodge(width=0.9)
-Sapling_plot<-ggplot(new.data,aes(x=Year2,y=(exp(SDS)),ymin=(exp(LCI)),ymax=(exp(UCI)),fill=Collapse3))+
+Sapling_plot<-ggplot(new.data,aes(x=Year2,y=(exp(SDS))*25,ymin=(exp(LCI))*25,ymax=(exp(UCI))*25,fill=Collapse3))+
   geom_bar(stat="identity",position =dodge)+geom_errorbar(position =dodge,width=0.25)
 Sapling_plot2<-Sapling_plot+ylab("Plot sapling density")+xlab("Year")+ theme(legend.position = "none") 
 Sapling_plot2+scale_fill_brewer(palette="Set1")+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))                                                                                                                                          
