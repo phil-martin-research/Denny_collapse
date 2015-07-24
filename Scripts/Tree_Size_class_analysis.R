@@ -297,7 +297,12 @@ SD_plot3<-SD_plot2+scale_fill_brewer(palette="Set1")+theme(panel.grid.major = el
 SD_plot3+geom_text(data=labels,aes(x=x,y=y*25,label=lab,ymax=NULL,ymin=NULL,fill=NULL,group=NULL),colour="black")+facet_wrap(~Size_Class2,ncol=2)
 ggsave("Figures/Tree_size_change.png",width = 8,height=6,units = "in",dpi=300)
 
-exp(1.019831411+0.199408866)
-exp(0.154819879)
-exp(1.019831411+0.319942935+-0.926078738)
-exp(0.223075846)
+#create plots of sd changes for ICCB poster
+theme_set(theme_grey(base_size=20))
+dodge <- position_dodge(width=0.9)
+SD_plot<-ggplot(subset(SD_Preds,Size_Class2==">45cm"|Size_Class2=="10-15cm"),aes(x=Year2,y=(exp(SD))*25,ymin=(exp(LCI))*25,ymax=(exp(UCI))*25,fill=Collapse2))+
+  geom_bar(stat="identity",position =dodge)+geom_errorbar(position =dodge,width=0.25)
+SD_plot2<-SD_plot+ylab("Plot stem density \n(per hectare)")+xlab("Year")
+SD_plot2+scale_fill_brewer("Collapse status",palette="Set1")+facet_wrap(~Size_Class2,ncol=1)
+ggsave("Figures/Tree_size_change_ICCB.png",width = 20,height=20,units = "cm",dpi=800)
+

@@ -87,3 +87,12 @@ ggsave("Figures/BA_Tanner.png",width = 8,height=6,units = "in",dpi=300)
 Coll_Tanner4<-Coll_Tanner3+ scale_colour_brewer(palette = "Set1","Year of survey")+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=plo2,shape=NULL),colour="black",lty=2)+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=phi2,shape=NULL),colour="black",lty=2)
 Coll_Tanner4+guides(shape=FALSE) 
 ggsave("Figures/BA_Tanner_colour.png",width = 8,height=6,units = "in",dpi=800)
+
+#plot for ICCB poster
+theme_set(theme_grey(base_size=20))
+Coll_Tanner1<-ggplot(Plots3,aes(x=BAPERCM*100*(-1),y=Tanner,colour=as.factor(Year2)))+geom_point(size=5,alpha=0.5,guide=F)
+Coll_Tanner2<-Coll_Tanner1+scale_shape_manual(values = c(1,2))
+Coll_Tanner3<-Coll_Tanner2+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=Pred,shape=NULL),colour="black")+ylab("Change in community composition (Tanner Index)")+xlab("Percentage basal area loss since 1964")
+Coll_Tanner4<-Coll_Tanner3+ scale_colour_brewer(palette = "Set1","Year of survey")+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=plo2,shape=NULL),colour="black",lty=2)+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=phi2,shape=NULL),colour="black",lty=2)
+Coll_Tanner4+guides(shape=F)
+ggsave("Figures/BA_Tanner_colour_ICCB.png",width = 20,height=20,units = "cm",dpi=800)

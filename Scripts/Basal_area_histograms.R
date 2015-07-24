@@ -31,3 +31,11 @@ Plot2<-Plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element
 Plot2+ theme(panel.margin = unit(0.7, "lines"))+ylab("Number")+xlab("Percentage change in Basal Area since 1964")
 ggsave("Figures/BA_histogram2.jpeg",width = 8,height=6,units = "in",dpi=800)
 
+
+#produce plot for ICCB poster
+median(subset(Plots,Year==2014)$BAPERCM)
+theme_set(theme_grey(base_size=30))
+Plot1<-ggplot(subset(Plots,Year==2014),aes(x=BAPERCM*100))+geom_histogram(fill="white",colour="black")+coord_cartesian(ylim = c(0,12))+geom_vline(x=median(subset(Plots,Year==2014)$BAPERCM)*100,size=2,lty=2)                                                                                                                                        
+Plot1+ theme(panel.margin = unit(0.7, "lines"))+ylab("Number of plots")+xlab("Percentage change in \nBasal Area since 1964")
+ggsave("Figures/BA_histogram_ICCB.jpeg",width = 20,height=20,units = "cm",dpi=800)
+
