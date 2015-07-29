@@ -39,9 +39,28 @@ plot(Temp_M1)
 
 
 Climate3$temp_pred<-predict(Temp_M1)
+
 #plot these results
 theme_set(theme_bw(base_size=12))
 Temp_plot1<-ggplot(Climate3,aes(x=Year,y=mean_temp))+geom_point(size=3,shape=1)+geom_line(lty=2,size=0.5,colour="grey",alpha=0.5)+geom_line(data=Climate3,aes(y=temp_pred),size=2)
 Temp_plot2<-Temp_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(colour="black",fill=NA))     
 Temp_plot2+ylab(expression(paste("Mean annual April-September temperature(",degree,"C)")))
 ggsave("Figures/Temperature_change.png",width = 8,height=6,units = "in",dpi=800)
+
+
+#plot these results
+theme_set(theme_bw(base_size=12))
+Temp_plot1<-ggplot(Climate3,aes(x=Year,y=mean_temp))+geom_point(size=3,shape=1)+geom_line(lty=2,size=0.5,colour="grey",alpha=0.5)+geom_line(data=Climate3,aes(y=temp_pred),size=2)
+Temp_plot2<-Temp_plot1+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(colour="black",fill=NA))     
+Temp_plot2+ylab(expression(paste("Mean annual April-September temperature(",degree,"C)")))
+ggsave("Figures/Temperature_change.png",width = 8,height=6,units = "in",dpi=800)
+
+
+
+#plot these results for ICCB poster
+theme_set(theme_grey(base_size=30))
+Temp_plot1<-ggplot(Climate3,aes(x=Year,y=mean_temp))+geom_point(size=5,alpha=0.5)+geom_line(lty=2,size=0.5,colour="black",alpha=0.5)+geom_line(data=Climate3,aes(y=temp_pred),size=2)
+Temp_plot2<-Temp_plot1    
+Temp_plot2+ylab(expression(paste("Mean growing season temperature(",degree,"C)")))
+ggsave("Figures/Temperature_change_ICCB.jpeg",width = 26,height=25,units = "cm",dpi=800)
+
