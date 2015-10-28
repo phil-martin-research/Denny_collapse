@@ -171,14 +171,14 @@ Grass_plot5
 ggsave("Figures/Grass_cover_gradient.png",width = 8,height=6,units = "in",dpi=300)
 
 #plot of this relationsip for ICCB poster
-theme_set(theme_grey(base_size=20))
-Grass_plot1<-ggplot(BA_ab,aes(x=BAPERCM2*100,y=Perc_C,colour=as.factor(Year)))+geom_point(shape=1,size=3)
+theme_set(theme_grey(base_size=30))
+Grass_plot1<-ggplot(BA_ab,aes(x=BAPERCM2*100,y=Perc_C,colour=as.factor(Year)))+geom_point(alpha=0.5,size=4)
 Grass_plot2<-Grass_plot1
 Grass_plot3<-Grass_plot2+geom_ribbon(data=newdat,aes(x=BAPERCM2*100,ymax=plogis(phi)*100,ymin=plogis(plo)*100,y=plogis(Perc_C2)*100),alpha=0.2,colour=NA)
-Grass_plot4<-Grass_plot3+geom_line(data=newdat,aes(x=BAPERCM2*100,y=plogis(Perc_C2)*100),colour="black",alpha=0.8)+ylab("Subplot grass cover (%)")+xlab("Percentage loss of basal area since 1964")
+Grass_plot4<-Grass_plot3+geom_line(data=newdat,aes(x=BAPERCM2*100,y=plogis(Perc_C2)*100),colour="black",alpha=0.8)+ylab("Subplot grass cover (%)")+xlab("Percentage loss of \nbasal area since 1964")
 Grass_plot5<-Grass_plot4+scale_colour_brewer("Year",palette ="Set1")+xlim(-50,100)
 Grass_plot5
-ggsave("Figures/Grass_cover_gradient_ICCB.png",width = 20,height=20,units = "cm",dpi=800)
+ggsave("Figures/Grass_cover_gradient_ICCB.jpeg",width = 29,height=29,units = "cm",dpi=800)
 
 
 #######################################################
