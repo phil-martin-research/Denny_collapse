@@ -4,20 +4,16 @@ library(ggplot2)
 library(lme4)
 library(MuMIn)
 
-#save all this as a csv
+#import .csv containing plot data
 Plots<-read.csv("Data/Denny_plots.csv")
-
-head(Plots)
-
 Plots$Tanner<-(Plots$Sor_BA+Plots$SorM)/2
-
+#drop all columns apart from the ones I need
 keeps<-c("BAPERCM","Tanner","Block","Year")
-
 Plots2<-Plots[keeps]
 #remove plots from 1964
-Plots2<-subset(Plots2,Year>1964)
-
+Plots2<-subset(Plots2,Year>1965)
 #create variable for tanner that is bounded above 0
+Plots2$Tanner<-ifelse(Plots2$Tanner==1,Plots2$Tanner-0.001,Plots2$Tanner+0.001)
 Plots2$Tanner2<-qlogis(Plots2$Tanner)
 Plots2$Year<-ifelse(Plots2$Year==1999,1996,Plots2$Year)
 Plots2$Year2<-ifelse(Plots2$Year==1996,"1996/9",Plots2$Year)
@@ -29,26 +25,27 @@ M0.1<-lmer(Tanner2~1+(1|Block),data=Plots2)
 M0.2<-lmer(Tanner2~1+(1|Block)+(1|Year),data=Plots2)
 M0.3<-lmer(Tanner2~1+(1|Block)+(BAPERCM|Year),data=Plots2)
 AICc(M0.1,M0.2,M0.3)
-##use first random effect specification
+##use third random effect specification
 M1<-lmer(Tanner2~BAPERCM+(1|Block)+(BAPERCM|Year),data=Plots2)
 M2<-lmer(Tanner2~BAPERCM+I(BAPERCM^2)+(1|Block)+(BAPERCM|Year),data=Plots2)
 AICc(M1,M2,M0.3)
 
+#check residuals - these look fine
 plot(M2)
 qqnorm(resid(M2))
 
 #create model selection output for these models
 Mod_list<-list(M0.3,M1,M2)
 Model_selection<-model.sel(Mod_list)
-Model_selection$R2<-c(r.squaredGLMM(M2)[1],r.squaredGLMM(M1)[1],r.squaredGLMM(M0.3)[1])
-write.csv(Model_selection,"Figures/Mod_sel_Grad_Tanner.csv")
+Model_selection$R2<-c(r.squaredGLMM(M2)[1],r.squaredGLMM(M1)[1],r.squaredGLMM(M0.1)[1])
+write.csv(Model_selection,"Tables/Mod_sel_Grad_Tanner.csv")
 
 #get coefficient of top model
 coefs <- data.frame(coef(summary(M2)))
 # use normal distribution to approximate p-value
 coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
 coefs
-write.csv(coefs,"Figures/Tanner_Grad_coefs.csv")
+write.csv(coefs,"Tables/Tanner_Grad_coefs.csv")
 
 #put prediction into dataframe
 Plots2$Pred<-plogis(predict(M2))
@@ -83,10 +80,10 @@ Coll_Tanner2<-Coll_Tanner1+theme(panel.grid.major = element_blank(),panel.grid.m
 Coll_Tanner3<-Coll_Tanner2+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=Pred,shape=NULL),colour="black")+ylab("Tanner Index")+xlab("Percentage basal area loss since 1964")
 Coll_Tanner4<-Coll_Tanner3+ scale_colour_grey("Year of survey")+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=plo2,shape=NULL),colour="black",lty=2)+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=phi2,shape=NULL),colour="black",lty=2)
 Coll_Tanner4+guides(shape=FALSE)
-ggsave("Figures/BA_Tanner.png",width = 8,height=6,units = "in",dpi=300)
+ggsave("Figures/For_Paper/BA_Tanner.png",width = 8,height=6,units = "in",dpi=300)
 Coll_Tanner4<-Coll_Tanner3+ scale_colour_brewer(palette = "Set1","Year of survey")+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=plo2,shape=NULL),colour="black",lty=2)+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=phi2,shape=NULL),colour="black",lty=2)
 Coll_Tanner4+guides(shape=FALSE) 
-ggsave("Figures/BA_Tanner_colour.png",width = 8,height=6,units = "in",dpi=800)
+ggsave("Figures/For_Paper/BA_Tanner_colour.png",width = 8,height=6,units = "in",dpi=800)
 
 #plot for ICCB poster
 theme_set(theme_grey(base_size=20))
@@ -95,4 +92,4 @@ Coll_Tanner2<-Coll_Tanner1+scale_shape_manual(values = c(1,2))
 Coll_Tanner3<-Coll_Tanner2+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=Pred,shape=NULL),colour="black")+ylab("Change in community composition (Tanner Index)")+xlab("Percentage basal area loss since 1964")
 Coll_Tanner4<-Coll_Tanner3+ scale_colour_brewer(palette = "Set1","Year of survey")+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=plo2,shape=NULL),colour="black",lty=2)+geom_line(data=newdat,aes(x=BAPERCM*100*(-1),y=phi2,shape=NULL),colour="black",lty=2)
 Coll_Tanner4+guides(shape=F)
-ggsave("Figures/BA_Tanner_colour_ICCB.png",width = 20,height=20,units = "cm",dpi=800)
+ggsave("Figures/For_Presentations/BA_Tanner_colour_ICCB.png",width = 20,height=20,units = "cm",dpi=800)
