@@ -1,4 +1,4 @@
-#script to tidy up data from Denny wood
+#script to tidy up tree data from Denny wood
 
 
 rm(list=ls(all=TRUE))
@@ -18,11 +18,10 @@ library(BRCmap)
 
 
 #import data
-setwd("C:/Users/Phil/Dropbox/Work/Active projects/Forest collapse/Denny_collapse/Data")
 #transect Latitude and longitude
-Coord<-read.csv("Transect_coords.csv")
+Coord<-read.csv("Data/Transect_coords.csv")
 #data on trees
-Plots<-read.csv("Denny_plots_edit4.csv")
+Plots<-read.csv("Data/Denny_plots_edit4.csv")
 #remove trees that fall outsie plots
 Plots<-Plots[- grep("out", Plots$Block),]
 
