@@ -7,7 +7,7 @@ library(gridExtra)
 library(grid)
 
 
-CWD<-read.csv("Data/CWD_Denny3.csv")
+CWD<-read.csv("Data/CWD_Denny.csv")
 CWD<-CWD[complete.cases(CWD),]
 CWD<-subset(CWD,Month>4&Month<10)
 CWD_calc<-ddply(CWD,.(Year),summarise,m_CWD=mean(CWD))

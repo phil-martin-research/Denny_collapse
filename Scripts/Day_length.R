@@ -1,4 +1,4 @@
-# script to calculate day length
+# script to calculate day length for use in climatic water deficit calculations
 library(ggplot)
 library(plyr)
 
