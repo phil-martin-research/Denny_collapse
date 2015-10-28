@@ -45,8 +45,22 @@ for (i in 1:length(Block_unique)){
 
 head(Plots2)
 
-ggplot(Plots2,aes(x=Coll_Sever,y=BAPERCM,group=Block))+geom_point()
+ggplot(Plots2,aes(x=Time_Coll,y=BAPERCM,group=Block))+geom_point()+facet_wrap(~Block)+geom_smooth(method="lm",se=F)
 
+#get a figure of the percentage change per year
+#following BA decline
+
+Blocks<-unique(Plots2$Block)
+Changes<-NULL
+for (i in 1:length(Blocks)){
+  Plot_Sub<-subset(Plots2,Block==Blocks[i])
+  Change<-(tail(Plot_Sub$BAPERCM,1)-Plot_Sub$BAPERCM[1])/(tail(Plot_Sub$Year,1)-Plot_Sub$Year[1])
+  Change_sub<-data.frame(Block=Blocks[i],Coll_sever=Plot_Sub$Coll_Sever[1],Change=Change)
+  Changes<-rbind(Changes,Change_sub)
+}
+
+
+ggplot(Changes,aes(x=Coll_sever,y=Change))+geom_point()
 
 #now subset to give plots post decline
 Plots3<-subset(Plots2,Collapse2==1)
@@ -69,90 +83,48 @@ AICc(M0.1,M0.2,M0.3,M0.4)
 
 #go with M0.1 random effects
 M1<-lmer(BAPERCM2~Time_Coll*Coll_Sever+(1|Block),data=Plots3)
-M2<-lmer(BAPERCM2~Time_Coll+Coll_Sever+(1|Block),data=Plots3)
-M3<-lmer(BAPERCM2~Time_Coll+(1|Block),data=Plots3)
-M4<-lmer(BAPERCM2~Coll_Sever+(1|Block),data=Plots3)
-M5<-lmer(BAPERCM2~Coll_Sever+I(Coll_Sever^2)+(1|Block),data=Plots3)
-M6<-lmer(BAPERCM2~Coll_Sever*Time_Coll+I(Coll_Sever^2)+(1|Block),data=Plots3)
+summary(M1)
 
+AICc(M1,M0.1)
 
-AICc(M1,M2,M3,M4,M5,M6)
+r.squaredGLMM(M1)
 
-plot(M5)
-qqnorm(resid(M5))
-qqline(resid(M5))
+coefs <- data.frame(coef(summary(M1)))
+# use normal distribution to approximate p-value
+coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
+coefs
 
-r.squaredGLMM(M5)
-r.squaredGLMM(M3)
+#create predictions for M1 in new dataframe
+Pred1<-ddply(Plots3,.(Block),summarize,Coll_Sever2=seq(min(Coll_Sever),max(Coll_Sever),0.01))
+Pred2<-ddply(Plots3,.(Block),summarise,Time_Coll=seq(min(Time_Coll),max(Time_Coll),1))
+Predictions<-merge(Pred1,Pred2,by="Block")
 
-#put predictions for M4 into dataframe
-Plots3$PredsR<-predict(M5)
-Plots3$Preds<-((plogis(predict(M5,re.form=NA)))*2)-1
+newdat<-expand.grid(Coll_Sever=c(-0.75,-0.5,-0.25,-0.1),
+                         Time_Coll=seq(min(Plots3$Time_Coll),max(Plots3$Time_Coll),0.1),BAPERCM2=0)
 
-#create predictions for M5 in new dataframe
-Predictions<-data.frame(Coll_Sever=seq(min(Plots3$Coll_Sever),max(Plots3$Coll_Sever),by=0.001))
-Predictions$Preds<-((plogis(predict(M5,re.form=NA,newdata=Predictions)))*2)-1
+mm <- model.matrix(terms(M1),newdat)
+newdat$BAPERCM2 <- predict(M1,newdat,re.form=NA)
+## or newdat$distance <- mm %*% fixef(fm1)
+pvar1 <- diag(mm %*% tcrossprod(vcov(M1),mm))
+tvar1 <- pvar1+VarCorr(M1)$Block[1]  ## must be adapted for more complex models 
+  newdat <- data.frame(
+    newdat
+    , plo = newdat$BAPERCM2-2*sqrt(pvar1)
+    , phi = newdat$BAPERCM2+2*sqrt(pvar1)
+    , tlo = newdat$BAPERCM2-2*sqrt(tvar1)
+    , thi = newdat$BAPERCM2+2*sqrt(tvar1)
+  )
 
-#plot change in BA relative to intial change in BA
-theme_set(theme_bw(base_size=12))
-Recovery_plot<-ggplot(Plots3,aes(x=Coll_Sever*100,y=BAPERCM*100,group=Block))+geom_point()+geom_line()+geom_hline(y=0,lty=2)
-Recovery_plot2<-Recovery_plot+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-Recovery_plot3<-Recovery_plot2+scale_colour_discrete("Year")+ylab("Basal area percentage change relative to 1964")+xlab("Initial percentage change in basal area relative to 1964")
-Recovery_plot4<-Recovery_plot3+geom_line(data=Predictions,size=2,aes(x=Coll_Sever*100,y=Preds*100,colour=NULL))+ theme(legend.position="none")
+newdat$Preds<-((plogis(newdat$BAPERCM2))*2)-1
+newdat$UCI<-((plogis(newdat$phi))*2)-1
+newdat$LCI<-((plogis(newdat$plo))*2)-1
+
+ggplot(Predictions,aes(x=Coll_Sever,y=Time_Coll,fill=Preds))+geom_raster()+scale_fill_gradient(low="black",high="light grey")
 
 #plot dynamics of change in BA - time since collapse
-New_coll<-data.frame(Coll_Sever=mean(Plots3$Coll_Sever))
-predict(M4,re.form=NA,newdata=New_coll)
-Dynamics_plot<-ggplot(Plots3,aes(x=Time_Coll,y=BAPERCM*100,group=Block))+geom_point(alpha=0.5)+geom_line(alpha=0.5)+geom_hline(y=0,lty=2)
+theme_set(theme_bw(base_size=12))
+Dynamics_plot<-ggplot(Plots3,aes(x=Time_Coll,y=BAPERCM*100,group=Block))+geom_point(shape=1)+geom_hline(y=0,lty=2)
 Dynamics_plot2<-Dynamics_plot+theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_rect(size=1.5,colour="black",fill=NA))
-Dynamics_plot3<-Dynamics_plot2+scale_colour_discrete("Year")+ylab("Basal area percentage change relative to 1964")+xlab("Years since initial collapse")+geom_line(y=-36.7,size=2)+xlim(c(0,30))
-
-png(filename="Figures/Recovery.png",height=6,width=12,units="in",res=300)
-grid.arrange(Recovery_plot4,Dynamics_plot3, ncol=2)
-dev.off()
-
-
-
-#table for adrian
-#create a table in which only plots that have declined are included and 
-#then subset these into plots that showed recovery and those that didn't
-#then group them by the amount of decline they showed prior to increase
-#then calculate the percentage recovery for each of these
-Blocks<-unique(Plots3$Block)
-Recovery_table<-NULL
-for (i in 1:length(Blocks)){
-  Block_subset<-subset(Plots3,Block==Blocks[i])
-  Block_subset$Recov<-Block_subset$BAPERCM-Block_subset$BAPERCM[1]
-  Block_subset$Decline<-min(Block_subset$BAPERCM)
-  Recovery_table<-rbind(Recovery_table,Block_subset)
-}
-
-Recovery_table2<-subset(Recovery_table,Time_Coll>0)
-
-for (i in 1:nrow(Recovery_table2)){
-  Recovery_table2$Recovered[i]<-ifelse(Recovery_table2$Recov[i]>0,1,0)
-}
-
-
-Recovery_table_2014<-subset(Recovery_table2,Year==2014)
-
-
-Recovery_table_2014$Decline
-
-#put into different groups
-Reclass<-data.frame(from=c(0,-0.25,-0.5,-0.75),to=c(-0.25,-0.5,-0.75,-1),gives=c("0-25%","25-50%","50-75%","75-100%"))
-Reclass_recovery<-NULL
-Recovery_table_2014$Group<-NA
-for (i in 1:nrow(Reclass)){
-  Reclass_sub<-subset(Recovery_table_2014,Decline<=Reclass$from[i])
-  Reclass_sub<-subset(Reclass_sub,Decline>=Reclass$to[i])
-  Reclass_sub$Group<-Reclass$gives[i]
-  Reclass_recovery<-rbind(Reclass_sub,Reclass_recovery)
-}
-Reclass_recovery$Count<-1
-
-
-Recovery_group<-ddply(Reclass_recovery, .(Group, Recovered), summarize,Mean_BA = round(mean(BAPERCM*100), 2),SD_BA=sd(BAPERCM*100),No_group = sum(Count))
-Recovery_group$BA_SE<-Recovery_group$SD_BA/sqrt(Recovery_group$No_group)
-write.csv(Recovery_group,"Figures/Recovery_group.csv")
-
+Dynamics_plot3<-Dynamics_plot2+scale_colour_discrete("% intitial decline\n in basal area")+ylab("Basal area percentage change relative to 1964")+xlab("Years since initial collapse")+geom_line(data=newdat,aes(y=Preds*100,group=as.factor(Coll_Sever),colour=as.factor(Coll_Sever*100)),size=1)+xlim(c(0,30))
+Dynamics_plot3+geom_ribbon(data=newdat)
+ggsave("Figures/BA_recovery.png",height=4,width=6,units="in",dpi=1200)
